@@ -3,7 +3,7 @@ SQL_QUERIES = {
     'top_favorited_neighborhoods': """
         SELECT n.name AS neighborhood_name, COUNT(f.user_id) AS favorite_count
         FROM Neighborhood n
-        JOIN like l ON n.id = l.neighborhood_id
+        JOIN user_likes_neighborhood uln ON n.id = uln.neighborhood_id
         GROUP BY n.id
         ORDER BY favorite_count DESC
         LIMIT %(num)s
