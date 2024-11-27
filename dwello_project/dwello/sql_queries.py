@@ -130,9 +130,9 @@ SQL_QUERIES = {
             s.name AS state_name,
             (
                 6371 * acos(
-                        cos(radians($target_latitude$)) * cos(radians(c.lat)) *
-                        cos(radians(c.lng) - radians($target_longitude$)) +
-                        sin(radians($target_latitude$)) * sin(radians(c.lat))
+                        cos(radians($(target_latitude)s)) * cos(radians(c.lat)) *
+                        cos(radians(c.lng) - radians($(target_longitude)s)) +
+                        sin(radians($(target_latitude)s)) * sin(radians(c.lat))
                     )
                 ) AS distance_km
         FROM
@@ -141,6 +141,6 @@ SQL_QUERIES = {
             state s ON c.state_id = s.state_id
         ORDER BY
             distance_km ASC
-        LIMIT $num$;
+        LIMIT $(num)s
     """
 }
