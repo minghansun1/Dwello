@@ -62,17 +62,25 @@ SQL_QUERIES = {
     """,
 
     'high_cost_cities_by_state': """
-        SELECT c.name AS city_name,
-               s.name AS state_name,
-               c.cost_of_living
-        FROM city c
-        JOIN state s ON c.state_id = s.id
-        WHERE c.cost_of_living > (
-            SELECT AVG(c2.cost_of_living)
-            FROM city c2
-            WHERE c2.state_id = c.state_id
-        )
-        ORDER BY s.name, c.cost_of_living DESC
+        SELECT
+            c.name AS city_name,
+            s.name AS state_name,
+            clb.total_cost AS cost_of_living
+        FROM
+            city c
+                JOIN
+            state s ON c.state_id = s.state_id
+                JOIN
+            cost_of_living_by_county clb ON c.county = clb.county AND c.state_id = clb.state_id
+        WHERE
+            clb.total_cost > (
+                SELECT AVG(clb2.total_cost)
+                FROM cost_of_living_by_county clb2
+                WHERE clb2.state_id = clb.state_id
+            )
+        ORDER BY
+            s.name,
+            clb.total_cost DESC
     """,
 
     'get_user_preferences': """
