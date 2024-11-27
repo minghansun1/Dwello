@@ -106,30 +106,41 @@ SQL_QUERIES = {
     """,
 
     'count_natural_disasters': """
-        SELECT s.name AS state_name,
-               COUNT(nd.id) AS disaster_count
-        FROM state s
-        JOIN natural_disaster nd ON s.id = nd.state_id
-        WHERE nd.date >= 2010
-        GROUP BY s.name
-        ORDER BY disaster_count DESC
+        SELECT
+            s.name AS state_name,
+            COUNT(nd.id) AS disaster_count
+        FROM
+            state s
+                JOIN
+            natural_disaster nd
+            ON s.state_id = nd.state_id
+        WHERE
+            nd.date >= '2010-01-01'
+        GROUP BY
+            s.name
+        ORDER BY
+            disaster_count DESC;
     """,
 
     'find_nearest_cities': """
-        SELECT c.name AS city_name,
-               c.lat,
-               c.lng,
-               s.name AS state_name,
-               (
-                   6371 * acos(
-                       cos(radians(%(target_latitude)s)) * cos(radians(c.lat)) *
-                       cos(radians(c.lng) - radians(%(target_longitude)s)) +
-                       sin(radians(%(target_latitude)s)) * sin(radians(c.lat))
-                   )
-               ) AS distance_km
-        FROM city c
-        JOIN state s ON c.state_id = s.state_id
-        ORDER BY distance_km ASC
-        LIMIT %(num)s
+        SELECT
+            c.name AS city_name,
+            c.lat,
+            c.lng,
+            s.name AS state_name,
+            (
+                6371 * acos(
+                        cos(radians($target_latitude$)) * cos(radians(c.lat)) *
+                        cos(radians(c.lng) - radians($target_longitude$)) +
+                        sin(radians($target_latitude$)) * sin(radians(c.lat))
+                    )
+                ) AS distance_km
+        FROM
+            city c
+                JOIN
+            state s ON c.state_id = s.state_id
+        ORDER BY
+            distance_km ASC
+        LIMIT $num$;
     """
 }
