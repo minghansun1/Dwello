@@ -91,18 +91,32 @@ SQL_QUERIES = {
     """,
 
     'get_user_favorites': """
-        SELECT u.id AS user_id,
-               c.name AS favorite_city,
-               z.number AS favorite_zip_code,
-               s.name AS favorite_state,
-               n.name AS favorite_neighborhood
-        FROM user u
-        LEFT JOIN like l ON u.id = l.user_id
-        LEFT JOIN city c ON l.city_id = c.id
-        LEFT JOIN zip_code z ON l.zip_code_id = z.id
-        LEFT JOIN state s ON l.state_id = s.id
-        LEFT JOIN neighborhood n ON l.neighborhood_id = n.id
-        WHERE u.id = %(target_user_id)s
+        SELECT
+            u.id AS user_id,
+            c.name AS favorite_city,
+            z.code AS favorite_zip_code,
+            s.name AS favorite_state,
+            n.name AS favorite_neighborhood
+        FROM
+            user_table u
+                LEFT JOIN
+            user_likes_city ulc ON u.id = ulc.user_id
+                LEFT JOIN
+            city c ON ulc.city_id = c.id
+                LEFT JOIN
+            user_likes_zipcode ulz ON u.id = ulz.user_id
+                LEFT JOIN
+            zip_county_code z ON ulz.zip_code = z.code
+                LEFT JOIN
+            user_likes_state uls ON u.id = uls.user_id
+                LEFT JOIN
+            state s ON uls.state_id = s.state_id
+                LEFT JOIN
+            user_likes_neighborhood uln ON u.id = uln.user_id
+                LEFT JOIN
+            neighborhood n ON uln.neighborhood_id = n.id
+        WHERE
+            u.id = %(target_user_id)s
     """,
 
     'count_natural_disasters': """
