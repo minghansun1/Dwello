@@ -119,7 +119,7 @@ SQL_QUERIES = {
         GROUP BY
             s.name
         ORDER BY
-            disaster_count DESC;
+            disaster_count DESC
     """,
 
     'find_nearest_cities': """
