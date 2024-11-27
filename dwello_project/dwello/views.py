@@ -85,7 +85,7 @@ def count_natural_disasters(request):
     return Response(results)
 
 
-@api_view(["GET"])
+@api_view(["POST"])
 def find_nearest_cities(request):
     params = {
         "target_latitude": request.GET.get("latitude"),

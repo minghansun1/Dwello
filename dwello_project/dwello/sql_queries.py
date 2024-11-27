@@ -1,7 +1,7 @@
 # Dictionary of SQL queries used by views.py
 SQL_QUERIES = {
     'top_favorited_neighborhoods': """
-        SELECT n.name AS neighborhood_name, COUNT(f.user_id) AS favorite_count
+        SELECT n.name AS neighborhood_name, COUNT(uln.user_id) AS favorite_count
         FROM Neighborhood n
         JOIN user_likes_neighborhood uln ON n.id = uln.neighborhood_id
         GROUP BY n.id
@@ -11,7 +11,8 @@ SQL_QUERIES = {
 
     'neighborhood_price_ranking': """
         SELECT n.name AS neighborhood_name,
-               SUM(hd.median_sale_price * hd.num_homes_sold) / SUM(hd.num_homes_sold) AS weighted_avg_price
+               SUM(CAST(hd.median_sale_price AS BIGINT) * CAST(hd.num_homes_sold AS BIGINT)) / 
+               NULLIF(SUM(CAST(hd.num_homes_sold AS BIGINT)), 0) AS weighted_avg_price
         FROM neighborhood n
         JOIN home_datapoint hd ON n.id = hd.neighborhood_id
         GROUP BY n.name
@@ -20,7 +21,8 @@ SQL_QUERIES = {
 
     'city_price_ranking': """
         SELECT c.name AS city_name,
-               SUM(hd.median_sale_price * hd.num_homes_sold) / SUM(hd.num_homes_sold) AS avg_price
+               SUM(CAST(hd.median_sale_price AS BIGINT) * CAST(hd.num_homes_sold AS BIGINT)) / 
+               NULLIF(SUM(CAST(hd.num_homes_sold AS BIGINT)), 0) AS weighted_avg_price
         FROM city c
         JOIN neighborhood n ON c.id = n.city_id
         JOIN home_datapoint hd ON n.id = hd.neighborhood_id
@@ -29,22 +31,31 @@ SQL_QUERIES = {
     """,
 
     'preference_based_ranking': """
-        WITH neighborhood_scores AS (
+        WITH avg_cost_of_living AS (
+            SELECT 
+                county,
+                state_id,
+                AVG(median_family_income) as median_income,
+                AVG(total_cost) as cost_of_living
+            FROM cost_of_living_by_county
+            GROUP BY county, state_id
+        ),
+        neighborhood_scores AS (
             SELECT n.id AS neighborhood_id,
                    n.name AS neighborhood_name,
-                   ABS(z.cost_of_living - %(preferred_cost_of_living)s) * %(importance_cost_of_living)s AS cost_of_living_score,
+                   ABS(acl.cost_of_living - %(preferred_cost_of_living)s) * %(importance_cost_of_living)s AS cost_of_living_score,
                    ABS(hd.median_sale_price - %(preferred_median_home_price)s) * %(importance_median_home_price)s AS home_price_score,
-                   ABS(z.median_income - %(preferred_median_income)s) * %(importance_median_income)s AS median_income_score,
-                   ABS(c.crime - %(preferred_crime_rate)s) * %(importance_crime_rate)s AS crime_score,
-                   ABS(i.a_median - %(preferred_industry_income)s) * %(importance_industry_income)s AS industry_income_score
+                   ABS(acl.median_income - %(preferred_median_income)s) * %(importance_median_income)s AS median_income_score,
+                   ABS(c.crime_rate - %(preferred_crime_rate)s) * %(importance_crime_rate)s AS crime_score
             FROM neighborhood n
-            JOIN zip_code z ON n.zip_code_id = z.id
-            JOIN city c ON z.city_id = c.id
             JOIN home_datapoint hd ON n.id = hd.neighborhood_id
-            JOIN industry i ON c.id = i.city_id
+            JOIN zip_county_code zcc ON n.city = zcc.city
+            JOIN city c ON n.city_id = c.id
+            JOIN avg_cost_of_living acl ON c.county = acl.county
+                AND c.state_id = acl.state_id
         )
         SELECT neighborhood_name,
-               (cost_of_living_score + home_price_score + median_income_score + crime_score + industry_income_score) AS total_score
+               (cost_of_living_score + home_price_score + median_income_score + crime_score) AS total_score
         FROM neighborhood_scores
         ORDER BY total_score ASC
         LIMIT %(num)s
@@ -106,18 +117,18 @@ SQL_QUERIES = {
 
     'find_nearest_cities': """
         SELECT c.name AS city_name,
-               c.latitude,
-               c.longitude,
+               c.lat,
+               c.lng,
                s.name AS state_name,
                (
                    6371 * acos(
-                       cos(pi()/180 * %(target_latitude)s) * cos(pi()/180 * c.latitude) *
-                       cos(pi()/180 * c.longitude - pi()/180 * %(target_longitude)s) +
-                       sin(pi()/180 * %(target_latitude)s) * sin(pi()/180 * c.latitude)
+                       cos(radians(%(target_latitude)s)) * cos(radians(c.lat)) *
+                       cos(radians(c.lng) - radians(%(target_longitude)s)) +
+                       sin(radians(%(target_latitude)s)) * sin(radians(c.lat))
                    )
                ) AS distance_km
         FROM city c
-        JOIN state s ON c.state_id = s.id
+        JOIN state s ON c.state_id = s.state_id
         ORDER BY distance_km ASC
         LIMIT %(num)s
     """
