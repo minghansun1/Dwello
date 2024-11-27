@@ -106,7 +106,7 @@ SQL_QUERIES = {
             s.name AS favorite_state,
             n.name AS favorite_neighborhood
         FROM
-            user_table u
+            auth_user u
                 LEFT JOIN
             user_likes_city ulc ON u.id = ulc.user_id
                 LEFT JOIN
