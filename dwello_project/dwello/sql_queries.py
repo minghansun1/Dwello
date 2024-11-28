@@ -32,7 +32,7 @@ SQL_QUERIES = {
 
     'preference_based_ranking': """
         WITH avg_cost_of_living AS (
-            SELECT 
+            SELECT
                 county,
                 state_id,
                 AVG(median_family_income) as median_income,
@@ -40,24 +40,53 @@ SQL_QUERIES = {
             FROM cost_of_living_by_county
             GROUP BY county, state_id
         ),
-        neighborhood_scores AS (
-            SELECT n.id AS neighborhood_id,
-                   n.name AS neighborhood_name,
-                   ABS(acl.cost_of_living - %(preferred_cost_of_living)s) * %(importance_cost_of_living)s AS cost_of_living_score,
-                   ABS(hd.median_sale_price - %(preferred_median_home_price)s) * %(importance_median_home_price)s AS home_price_score,
-                   ABS(acl.median_income - %(preferred_median_income)s) * %(importance_median_income)s AS median_income_score,
-                   ABS(c.crime_rate - %(preferred_crime_rate)s) * %(importance_crime_rate)s AS crime_score
-            FROM neighborhood n
-            JOIN home_datapoint hd ON n.id = hd.neighborhood_id
-            JOIN zip_county_code zcc ON n.city = zcc.city
-            JOIN city c ON n.city_id = c.id
-            JOIN avg_cost_of_living acl ON c.county = acl.county
-                AND c.state_id = acl.state_id
+        neighborhood_score AS (
+            SELECT n2.id as id, n2.city_id, n2.state_id, n2.name AS neighborhood_name,
+                ABS(CAST(SUM(CAST(hd.median_sale_price_adjusted AS DECIMAL(38, 2)) * hd.num_homes_sold) /
+                        NULLIF(SUM(hd.num_homes_sold), 0) AS INT)-%(preferred_median_home_price)s)*%(importance_median_home_price)s AS neighborhood_price_score
+            FROM neighborhood n2
+            JOIN home_datapoint hd ON n2.id = hd.neighborhood_id
+            GROUP BY n2.id
+        ),
+        city_score AS(
+            SELECT name, id, state_id, county,
+                SQRT(POWER(lat-%(preferred_latitude)s, 2)+POWER(lng-%(preferred_longitude),2)) * %(importance_location)s AS city_location_score,
+                ABS(crime_rate-%(preferred_crime_rate)s) * %(importance_crime_rate)s AS city_crime_rate_score
+            FROM city
+        ),
+        industry_city_score AS(
+            SELECT city_id, ABS(a_median-%(preferred_industry_salary)s) * %(importance_industry_salary)s AS city_industry_salary_score,
+            ABS(a_median-%(preferred_industry_jobs_1000)s) * %(importance_industry_jobs_1000)s AS city_industry_jobs_1000_score
+            FROM industry_city_data
+            WHERE industry_name = %(industry_name)s
+        ),
+        state_score AS(
+            SELECT s2.state_id, ABS(COUNT(*)-%(preferred_natural_disaster_count)s) * %(importance_natural_disaster_count)s AS state_natural_disaster_score
+            FROM state s2
+                    JOIN natural_disaster
+                        ON s2.state_id = natural_disaster.state_id
+            WHERE date>'2000-01-01'
+            GROUP BY s2.state_id
+        ),
+        county_score AS(
+            SELECT county, state_id, ABS(AVG(total_cost)-%(preferred_cost_of_living)s) * %(importance_cost_of_living)s AS county_cost_of_living_score,
+            ABS(AVG(median_family_income)-%(preferred_median_family_income)s) * %(importance_median_family_income)s AS county_family_median_income_score
+            FROM cost_of_living_by_county
+            GROUP BY county, state_id
         )
+
         SELECT neighborhood_name,
-               (cost_of_living_score + home_price_score + median_income_score + crime_score) AS total_score
-        FROM neighborhood_scores
-        ORDER BY total_score ASC
+            (neighborhood_price_score+city_location_score+city_crime_rate_score+city_industry_salary_score+city_industry_jobs_1000_score+state_natural_disaster_score) AS total_score
+        FROM neighborhood_score n
+        JOIN city_score c
+            ON n.city_id = c.id
+        JOIN industry_city_score i
+            ON i.city_id = c.id
+        JOIN state_score s
+            ON s.state_id=c.state_id
+        JOIN county_score co
+            ON co.county = c.county
+        ORDER BY total_score
         LIMIT %(num)s
     """,
 
@@ -104,7 +133,7 @@ SQL_QUERIES = {
                 SUM(CAST(hd.median_sale_price_adjusted AS DECIMAL(38, 2)) * hd.num_homes_sold) /
                 NULLIF(SUM(hd.num_homes_sold), 0)
                 AS INT
-                ) BETWEEN COALESCE(%(min_price)s, 0) AND COALESCE(%(max_price)s, 0)
+                ) BETWEEN COALESCE(%(min_price)s, 0) AND COALESCE(%(max_price)s, 100000000)
         ),
         city_filtered AS (
             SELECT id, county, state_id
