@@ -64,13 +64,26 @@ def get_user_preferences(request, user_id):
 
 
 @api_view(["GET"])
-def filter_neighborhoods_by_price(request):
+def filter_neighborhoods(request):
     params = {
         "min_price": request.GET.get("min_price"),
         "max_price": request.GET.get("max_price"),
+        "max_crime": request.GET.get("max_crime"),
+        "max_latitude": request.GET.get("max_latitude"),
+        "min_latitude": request.GET.get("min_latitude"),
+        "max_longitude": request.GET.get("max_longitude"),
+        "min_longitude": request.GET.get("min_longitude"),
+        "max_cost_of_living": request.GET.get("max_cost_of_living"),
+        "min_cost_of_living": request.GET.get("min_cost_of_living"),
+        "zip_code": request.GET.get("zip_code"),
+        "max_natural_disaster_count": request.GET.get("max_natural_disaster_count"),
+        "max_pop_density": request.GET.get("max_pop_density"),
+        "max_pop": request.GET.get("max_pop"),
+        "num": request.GET.get("num", 10),
     }
-    results = execute_query("filter_neighborhoods_by_price", params)
+    results = execute_query("filter_neighborhoods", params)
     return Response(results)
+
 
 
 @api_view(["GET"])

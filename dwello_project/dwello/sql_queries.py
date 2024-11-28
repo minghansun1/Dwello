@@ -70,14 +70,60 @@ SQL_QUERIES = {
         WHERE u.id = %(user_id)s
     """,
 
-    'filter_neighborhoods_by_price': """
-        SELECT n.name AS neighborhood_name,
-               hd.median_sale_price
-        FROM neighborhood n
-        JOIN home_datapoint hd ON n.id = hd.neighborhood_id
-        WHERE hd.median_sale_price BETWEEN %(min_price)s AND %(max_price)s
-        ORDER BY hd.median_sale_price ASC
+        'filter_neighborhoods': """
+        WITH neighborhood_filtered AS (
+            SELECT n2.name AS neighborhood_name,
+                CAST(SUM(CAST(hd.median_sale_price_adjusted AS DECIMAL(38, 2)) * hd.num_homes_sold) /
+                NULLIF(SUM(hd.num_homes_sold), 0) AS INT) AS weighted_avg_price,
+                n2.id as id
+            FROM neighborhood n2
+            JOIN home_datapoint hd ON n2.id = hd.neighborhood_id
+            WHERE (%(zip_code)s IS NULL OR zip_code = %(zip_code)s)
+            GROUP BY n2.id
+            HAVING
+                CAST(
+                SUM(CAST(hd.median_sale_price_adjusted AS DECIMAL(38, 2)) * hd.num_homes_sold) /
+                NULLIF(SUM(hd.num_homes_sold), 0)
+                AS INT
+                ) BETWEEN COALESCE(%(min_price)s, 0) AND COALESCE(%(max_price)s, 0)
+        ),
+        city_filtered AS (
+            SELECT id, county, state_id
+            FROM city
+            WHERE lat BETWEEN COALESCE(%(min_latitude)s,-90) AND COALESCE(%(max_latitude)s,90)
+                AND lng BETWEEN COALESCE(%(min_longitude)s,-180) AND COALESCE(%(max_longitude)s,180)
+                AND crime_rate < COALESCE(%(max_crime)s, 100000)
+                AND density BETWEEN COALESCE(%(min_pop_density)s, 0) AND COALESCE(%(max_pop_density)s, 100000)
+                AND population BETWEEN COALESCE(%(min_pop)s, 0) AND COALESCE(%(max_pop)s, 100000000)
+                AND (%(city)s IS NULL OR name = %(city)s)
+        ),
+        state_filtered AS (
+            SELECT s.state_id, COUNT(*)
+            FROM state s
+            JOIN natural_disaster
+            ON s.state_id = natural_disaster.state_id
+            WHERE date>'2000-01-01' AND (%(state)s IS NULL OR s.state_id=%(state)s)
+            GROUP BY s.state_id
+            HAVING COUNT(*)>COALESCE(%(max_natural_disaster_count)s, 0)
+        ),
+        county_filtered AS (
+            SELECT county, state_id, AVG(total_cost) as total_cost
+            FROM cost_of_living_by_county
+            GROUP BY county, state_id
+            HAVING AVG(total_cost) BETWEEN COALESCE(%(min_cost_of_living)s, 0) AND COALESCE(%(max_cost_of_living)s, 10000000)
+        )
+
+        SELECT nf.id, nf.neighborhood_name, nf.weighted_avg_price, nf.zip_code, cf.id, cf.state_id, cf.county FROM neighborhood n
+        JOIN neighborhood_filtered nf
+            ON n.id = nf.id
+        JOIN city_filtered cf
+            ON n.city_id = cf.id
+        JOIN state_filtered sf
+            ON n.state_id = sf.state_id
+        JOIN county_filtered col_f
+            ON cf.county = col_f.county AND cf.state_id=col_f.state_id
     """,
+
 
     'get_user_favorites': """
         SELECT u.id AS user_id,
