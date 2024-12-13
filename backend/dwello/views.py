@@ -131,9 +131,9 @@ def execute_query(query_name, params=None):
 
 
 @api_view(["GET"])
-def top_favorited_neighborhoods(request):
-    num_neighborhoods = request.GET.get("num", 10)
-    results = execute_query("top_favorited_neighborhoods", {"num": num_neighborhoods})
+def top_liked_locations(request):
+    num_locations = request.GET.get("num", 10)
+    results = execute_query("top_liked_locations", {"num": num_locations})
     return Response(results)
 
 

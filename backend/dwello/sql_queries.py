@@ -1,6 +1,6 @@
 # Dictionary of SQL queries used by views.py
 SQL_QUERIES = {
-    "top_favorited_neighborhoods": """
+    "top_liked_neighborhoods": """
         SELECT n.name AS neighborhood_name, COUNT(uln.user_id) AS favorite_count
         FROM Neighborhood n
         JOIN user_likes_neighborhood uln ON n.id = uln.neighborhood_id
