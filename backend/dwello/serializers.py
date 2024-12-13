@@ -9,8 +9,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 class UserSignupSerializer(serializers.ModelSerializer):
     income = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
-    city_name = serializers.CharField(write_only=True)
-    state_id = serializers.CharField(max_length=2, write_only=True)
+    city_name = serializers.CharField(write_only=True, required=False)
+    state_id = serializers.CharField(max_length=2, write_only=True, required=False)
     
     class Meta:
         model = User
@@ -19,32 +19,33 @@ class UserSignupSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         # Remove city_name and state_id from validated_data
-        city_name = validated_data.pop('city_name')
-        state_id = validated_data.pop('state_id')
+        city_name = validated_data.pop('city_name', None)
+        state_id = validated_data.pop('state_id', None)
         income = validated_data.pop('income', None)
 
-        # Get city
-        try:
-            city = City.objects.get(
-                name__iexact=city_name,
-                state__state_id=state_id.upper()
-            )
-            
-            # Create the user
-            user = User.objects.create_user(
-                username=validated_data['username'],
-                email=validated_data.get('email', ''),
-                password=validated_data['password']
-            )
+        # Create the user
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data.get('email', ''),
+            password=validated_data['password']
+        )
         
-            # Create UserProfile
-            UserProfile.objects.create(
-                user=user,
-                income=income,
-                city=city,
-            )
-        except City.DoesNotExist:
-            user.delete()  # Rollback user creation
-            raise serializers.ValidationError(f"City {city_name}, {state_id} not found")
+        # Attempt to get city if city_name and state_id are provided
+        city = None
+        if city_name and state_id:
+            try:
+                city = City.objects.get(
+                    name__iexact=city_name,
+                    state__state_id=state_id.upper()
+                )
+            except City.DoesNotExist:
+                pass  # City not found, continue without setting city
+
+        # Create UserProfile
+        UserProfile.objects.create(
+            user=user,
+            income=income,
+            city=city,
+        )
 
         return user

@@ -44,6 +44,7 @@ def user_signup(request):
                 "id": user.id,
                 "username": user.username,
                 "email": user.email,
+                "income": profile.income,
                 "city": {
                     "name": city.name,
                     "state": city.state.state_id
