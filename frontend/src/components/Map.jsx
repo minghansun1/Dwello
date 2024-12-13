@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from "react";
-import { LoadScript } from "@react-google-maps/api";
+import React, { useRef, useEffect, useState } from "react";
+import { LoadScript, useJsApiLoader } from "@react-google-maps/api";
 import { use } from "react";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -8,9 +8,14 @@ function Map() {
   const mapRef = useRef(null); // Reference to the map container
   const mapInstanceRef = useRef(null); // Reference to the map instance
   const mapType = "State"; // "State", "County", "Zip Code", or "City"
+  const [mapHeight, setMapHeight] = useState("100vh");
   let lastInteractedFeatureIds = [];
   let lastClickedFeatureIds = [];
   let infoWindow;
+
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+  });
 
   const handleClick = (e, featureLayer, map) => {
     lastClickedFeatureIds = e.features.map((f) => f.placeId);
@@ -173,15 +178,30 @@ function Map() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const updateHeight = () => {
+      const navbarHeight = document.querySelector("nav")?.offsetHeight || 64;
+      setMapHeight(`calc(100vh - ${navbarHeight}px)`);
+    };
+
+    // Update height on load and window resize
+    updateHeight();
+    window.addEventListener("resize", updateHeight);
+
+    return () => window.removeEventListener("resize", updateHeight);
+  }, []);
+
+  if (loadError) return <div>Error loading Google Maps</div>;
+  if (!isLoaded) return <div>Loading...</div>;
 
   return (
-    <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
+    <div>
       <div
         id="map"
         ref={mapRef}
-        style={{ width: "100%", height: "100vh" }}
+        style={{ width: "100%", height: mapHeight }}
       ></div>
-    </LoadScript>
+    </div>
   );
 }
 

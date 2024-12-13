@@ -19,6 +19,7 @@ from rest_framework.authentication import TokenAuthentication
 @permission_classes([AllowAny])
 @authentication_classes([])
 def user_signup(request):
+    print(request)
     try:
         serializer = UserSignupSerializer(data=request.data)
         if not serializer.is_valid():
