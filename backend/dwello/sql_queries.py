@@ -1,6 +1,6 @@
 # Dictionary of SQL queries used by views.py
 SQL_QUERIES = {
-    'top_favorited_neighborhoods': """
+    "top_favorited_neighborhoods": """
         SELECT n.name AS neighborhood_name, COUNT(uln.user_id) AS favorite_count
         FROM Neighborhood n
         JOIN user_likes_neighborhood uln ON n.id = uln.neighborhood_id
@@ -8,8 +8,7 @@ SQL_QUERIES = {
         ORDER BY favorite_count DESC
         LIMIT %(num)s
     """,
-
-    'neighborhood_price_ranking': """
+    "neighborhood_price_ranking": """
         SELECT n.name AS neighborhood_name,
                SUM(CAST(hd.median_sale_price AS BIGINT) * CAST(hd.num_homes_sold AS BIGINT)) / 
                NULLIF(SUM(CAST(hd.num_homes_sold AS BIGINT)), 0) AS weighted_avg_price
@@ -18,8 +17,7 @@ SQL_QUERIES = {
         GROUP BY n.name
         ORDER BY weighted_avg_price DESC
     """,
-
-    'city_price_ranking': """
+    "city_price_ranking": """
         SELECT c.name AS city_name,
                SUM(CAST(hd.median_sale_price AS BIGINT) * CAST(hd.num_homes_sold AS BIGINT)) / 
                NULLIF(SUM(CAST(hd.num_homes_sold AS BIGINT)), 0) AS weighted_avg_price
@@ -29,8 +27,7 @@ SQL_QUERIES = {
         GROUP BY c.name
         ORDER BY weighted_avg_price DESC
     """,
-
-    'preference_based_ranking': """
+    "preference_based_ranking": """
         WITH avg_cost_of_living AS (
             SELECT
                 county,
@@ -111,10 +108,9 @@ SQL_QUERIES = {
             s.name,
             clb.total_cost DESC
     """,
-
-    'get_user_preferences': """
+    "get_user_preferences": """
         SELECT income, location
-        FROM user u
+        FROM auth_user u
         WHERE u.id = %(user_id)s
     """,
 
@@ -201,8 +197,7 @@ SQL_QUERIES = {
         WHERE
             u.id = %(target_user_id)s
     """,
-
-    'count_natural_disasters': """
+    "count_natural_disasters": """
         SELECT
             s.name AS state_name,
             COUNT(nd.id) AS disaster_count
@@ -218,8 +213,7 @@ SQL_QUERIES = {
         ORDER BY
             disaster_count DESC
     """,
-
-    'find_nearest_cities': """
+    "find_nearest_cities": """
         SELECT
             c.name AS city_name,
             c.lat,
@@ -227,9 +221,9 @@ SQL_QUERIES = {
             s.name AS state_name,
             (
                 6371 * acos(
-                        cos(radians($(target_latitude)s)) * cos(radians(c.lat)) *
-                        cos(radians(c.lng) - radians($(target_longitude)s)) +
-                        sin(radians($(target_latitude)s)) * sin(radians(c.lat))
+                        cos(radians(%(target_latitude)s)) * cos(radians(c.lat)) *
+                        cos(radians(c.lng) - radians(%(target_longitude)s)) +
+                        sin(radians(%(target_latitude)s)) * sin(radians(c.lat))
                     )
                 ) AS distance_km
         FROM
@@ -238,6 +232,6 @@ SQL_QUERIES = {
             state s ON c.state_id = s.state_id
         ORDER BY
             distance_km ASC
-        LIMIT $(num)s
-    """
+        LIMIT %(num)s;
+    """,
 }
