@@ -13,28 +13,37 @@ from .serializers import UserSignupSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
 from rest_framework.authentication import TokenAuthentication
+from rest_framework import serializers
 
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
 @authentication_classes([])
 def user_signup(request):
+<<<<<<< Updated upstream
     print(request)
+=======
+    if not request.data:
+        return Response(
+            {"error": "No data provided"}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    serializer = UserSignupSerializer(data=request.data)
+    
+>>>>>>> Stashed changes
     try:
-        serializer = UserSignupSerializer(data=request.data)
+        # This will handle all the validation including existing user checks
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                "error": "Validation failed",
+                "details": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Create user and profile
         user = serializer.save()
-        
-        # Create token for the new user
         token = Token.objects.create(user=user)
-
-        # Log in the user
         login(request, user)
 
-        # Get the user profile
         profile = user.userprofile
         city = profile.city
 
@@ -53,11 +62,18 @@ def user_signup(request):
             }
         }, status=status.HTTP_201_CREATED)
 
+    except serializers.ValidationError as e:
+        return Response({
+            "error": "Validation error",
+            "details": e.detail
+        }, status=status.HTTP_400_BAD_REQUEST)
+        
     except Exception as e:
-        return Response(
-            {"error": str(e)}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        return Response({
+            "error": "An unexpected error occurred",
+            "details": str(e),
+            "type": type(e).__name__
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
