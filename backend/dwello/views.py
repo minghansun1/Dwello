@@ -12,9 +12,7 @@ from .models import UserProfile
 from .serializers import UserSignupSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
-from rest_framework import serializers
-from django.views.decorators.csrf import csrf_exempt
-
+from rest_framework.authentication import TokenAuthentication
 
 
 @api_view(["POST"])
@@ -32,12 +30,15 @@ def user_signup(request):
         # Create token for the new user
         token = Token.objects.create(user=user)
 
+        # Log in the user
+        login(request, user)
+
         # Get the user profile
         profile = user.userprofile
         city = profile.city
 
         return Response({
-            "message": "User created successfully",
+            "message": "User created and logged in successfully",
             "token": token.key,
             "user": {
                 "id": user.id,
@@ -106,29 +107,14 @@ def user_login(request):
 
 
 @api_view(["POST"])
-@permission_classes([AllowAny])
-@authentication_classes([])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
 def user_logout(request):
     try:
-        # Get token from header
-        auth_header = request.headers.get('Authorization')
-        if auth_header and auth_header.startswith('Token '):
-            token_key = auth_header.split(' ')[1]
-            try:
-                token = Token.objects.get(key=token_key)
-                token.delete()
-                logout(request)
-                return Response({"message": "Successfully logged out"})
-            except Token.DoesNotExist:
-                return Response(
-                    {"error": "Invalid token"},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-        
-        return Response(
-            {"error": "No authentication token provided"},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+        # Delete the user's token
+        request.user.auth_token.delete()
+        logout(request)
+        return Response({"message": "Successfully logged out"})
 
     except Exception as e:
         return Response(
