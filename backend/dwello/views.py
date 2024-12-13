@@ -20,9 +20,6 @@ from rest_framework import serializers
 @permission_classes([AllowAny])
 @authentication_classes([])
 def user_signup(request):
-<<<<<<< Updated upstream
-    print(request)
-=======
     if not request.data:
         return Response(
             {"error": "No data provided"}, 
@@ -31,7 +28,6 @@ def user_signup(request):
 
     serializer = UserSignupSerializer(data=request.data)
     
->>>>>>> Stashed changes
     try:
         # This will handle all the validation including existing user checks
         if not serializer.is_valid():
