@@ -511,13 +511,18 @@ def top_liked_locations(request):
 def basic_city_snapshot(request):
     """Get basic information about a city"""
     city_name = request.GET.get('city')
-    if not city_name:
+    state_id = request.GET.get('state_id')
+    
+    if not city_name or not state_id:
         return Response(
-            {"error": "City name is required"}, 
+            {"error": "Both city name and state_id are required"}, 
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    results = execute_query("basic_city_snapshot", {"city_name": city_name})
+    results = execute_query("basic_city_snapshot", {
+        "city_name": city_name,
+        "state_id": state_id
+    })
     return Response(results)
 
 @api_view(["GET"])
@@ -525,13 +530,20 @@ def basic_city_snapshot(request):
 def basic_county_snapshot(request):
     """Get basic information about a county"""
     county_name = request.GET.get('county')
-    if not county_name:
+    state_id = request.GET.get('state_id')
+    city_name = request.GET.get('city')
+    
+    if not all([county_name, state_id, city_name]):
         return Response(
-            {"error": "County name is required"}, 
+            {"error": "County name, state_id, and city name are all required"}, 
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    results = execute_query("basic_county_snapshot", {"county_name": county_name})
+    results = execute_query("basic_county_snapshot", {
+        "county_name": county_name,
+        "state_id": state_id,
+        "city_name": city_name
+    })
     return Response(results)
 
 @api_view(["GET"])
@@ -545,7 +557,9 @@ def basic_state_snapshot(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    results = execute_query("basic_state_snapshot", {"state_name": state_name})
+    results = execute_query("basic_state_snapshot", {
+        "state_name": state_name
+    })
     return Response(results)
 
 @api_view(["GET"])
@@ -565,5 +579,7 @@ def basic_zipcode_snapshot(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    results = execute_query("basic_zipcode_snapshot", {"zip_code": zip_code})
+    results = execute_query("basic_zipcode_snapshot", {
+        "zip_code": zip_code
+    })
     return Response(results)

@@ -309,18 +309,24 @@ SQL_QUERIES = {
         SELECT name, state_id, ranking,lat, lng, crime_rate, density, population
         FROM city
         WHERE name = %(city_name)s
-        LIMIT 1
+        AND state_id = %(state_id)s
     """,
     "basic_county_snapshot": """
         SELECT 
-            county, 
-            housing_cost, 
-            food_cost,
-            healthcare_cost
+            zc.county,
+            zc.state_id,
+            zc.city,
+            col.housing_cost, 
+            col.food_cost,
+            col.healthcare_cost
         FROM 
-            cost_of_living_by_county 
+            cost_of_living_by_county col
+        JOIN 
+            zip_county_code zc ON col.county = zc.county
         WHERE 
-            county = %(county_name)s
+            zc.county = %(county_name)s
+            AND zc.state_id = %(state_id)s
+            AND zc.city = %(city_name)s
         LIMIT 1
     """,
     "basic_state_snapshot": """
