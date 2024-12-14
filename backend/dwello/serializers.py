@@ -13,14 +13,13 @@ class CitySerializer(serializers.ModelSerializer):
 
 
 class LocationSerializer(serializers.Serializer):
-    location_name = serializers.CharField()
-
+    location_name = serializers.CharField(source='Location Name')
 
 class ZipcodeSerializer(serializers.Serializer):
-    zip_code = serializers.IntegerField()
-    city_name = serializers.CharField()
-    county_name = serializers.CharField()
-    state_id = serializers.CharField()
+    zip_code = serializers.IntegerField(source='Zip Code')
+    city_name = serializers.CharField(source='City Name')
+    county_name = serializers.CharField(source='County Name')
+    state_id = serializers.CharField(source='State Id')
 
 
 class UserProfileSerializer(serializers.ModelSerializer):

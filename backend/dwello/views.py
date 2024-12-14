@@ -280,7 +280,7 @@ class UserViewSet(viewsets.ModelViewSet):
             },
         )
 
-        if check_result[0]["exists"]:
+        if check_result[0]["Exists"]:
             # Unlike
             execute_query(
                 "unlike_location",

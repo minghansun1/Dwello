@@ -291,7 +291,7 @@ SQL_QUERIES = {
             FROM {table_name}
             WHERE user_id = %(user_id)s
             AND {id_column} = %(location_id)s
-        )
+        ) as exists
     """,
     "user_liked_locations": """
         SELECT t.name AS location_name
@@ -304,7 +304,7 @@ SQL_QUERIES = {
         SELECT zcc.code AS zip_code,
                zcc.city AS city_name,
                zcc.county AS county_name,
-               zcc.state_id
+               zcc.state_id AS state_id
         FROM zip_county_code zcc
         JOIN user_likes_zipcode ulz ON zcc.code = ulz.zip_code
         WHERE ulz.user_id = %(user_id)s
