@@ -2,6 +2,7 @@ import json
 from typing import Any, Optional
 import redis
 from django.conf import settings
+from decimal import Decimal
 
 class RedisCache:
     def __init__(self):
@@ -12,6 +13,16 @@ class RedisCache:
             decode_responses=True
         )
         
+    def _serialize_value(self, value):
+        """Helper method to serialize values, handling Decimal objects"""
+        if isinstance(value, Decimal):
+            return str(value)
+        elif isinstance(value, dict):
+            return {k: self._serialize_value(v) for k, v in value.items()}
+        elif isinstance(value, list):
+            return [self._serialize_value(item) for item in value]
+        return value
+
     def get(self, key: str) -> Optional[Any]:
         """Get value from cache"""
         try:
@@ -24,7 +35,7 @@ class RedisCache:
     def set(self, key: str, value: Any, timeout: int = None) -> bool:
         """Set value in cache with optional timeout in seconds"""
         try:
-            serialized_value = json.dumps(value)
+            serialized_value = json.dumps(self._serialize_value(value))
             return self.redis_client.set(key, serialized_value, ex=timeout)
         except Exception as e:
             print(f"Redis SET Error: {str(e)}")
@@ -47,4 +58,12 @@ class RedisCache:
             return True
         except Exception as e:
             print(f"Redis CLEAR Pattern Error: {str(e)}")
+            return False
+
+    def clear_all(self) -> bool:
+        """Clear all keys in the Redis database"""
+        try:
+            return bool(self.redis_client.flushdb())
+        except Exception as e:
+            print(f"Redis CLEAR ALL Error: {str(e)}")
             return False

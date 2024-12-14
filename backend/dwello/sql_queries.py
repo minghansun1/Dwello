@@ -21,22 +21,27 @@ SQL_QUERIES = {
         LIMIT 100
     """,
     "neighborhood_price_ranking": """
-        SELECT n.name AS neighborhood_name,
+        SELECT n.name AS Neighborhood,
+        n.state_id as State,
+        c.name as City,
+        n.zip_code as Zip_Code,
                SUM(CAST(hd.median_sale_price AS BIGINT) * CAST(hd.num_homes_sold AS BIGINT)) / 
-               NULLIF(SUM(CAST(hd.num_homes_sold AS BIGINT)), 0) AS weighted_avg_price
+               NULLIF(SUM(CAST(hd.num_homes_sold AS BIGINT)), 0) AS Average_Price
         FROM neighborhood n
+        JOIN city c ON n.city_id = c.id
         JOIN home_datapoint hd ON n.id = hd.neighborhood_id
-        GROUP BY n.name
-        ORDER BY weighted_avg_price DESC
+        GROUP BY n.name, n.state_id, c.name, n.zip_code
+        ORDER BY Average_Price DESC
     """,
     "city_price_ranking": """
         SELECT c.name AS city_name,
+        c.state_id as State,
                SUM(CAST(hd.median_sale_price AS BIGINT) * CAST(hd.num_homes_sold AS BIGINT)) / 
                NULLIF(SUM(CAST(hd.num_homes_sold AS BIGINT)), 0) AS weighted_avg_price
         FROM city c
         JOIN neighborhood n ON c.id = n.city_id
         JOIN home_datapoint hd ON n.id = hd.neighborhood_id
-        GROUP BY c.name
+        GROUP BY c.name, c.state_id
         ORDER BY weighted_avg_price DESC
     """,
     "preference_based_ranking": """
@@ -305,12 +310,14 @@ SQL_QUERIES = {
         WHERE ulz.user_id = %(user_id)s
         ORDER BY zcc.code
     """,
+    #########CITY DETAIL########################################
     "basic_city_snapshot": """
         SELECT name, state_id, ranking,lat, lng, crime_rate, density, population
         FROM city
         WHERE name = %(city_name)s
         AND state_id = %(state_id)s
     """,
+    #########COUNTY DETAIL########################################
     "basic_county_snapshot": """
         SELECT 
             zc.county,
@@ -326,9 +333,26 @@ SQL_QUERIES = {
         WHERE 
             zc.county = %(county_name)s
             AND zc.state_id = %(state_id)s
-            AND zc.city = %(city_name)s
         LIMIT 1
     """,
+    "basic_county_info": """
+        SELECT 
+            county, 
+            state.name AS state, 
+            population, 
+            density, 
+            total_cost, 
+            median_family_income
+        FROM 
+            cost_of_living_by_county
+        JOIN 
+            state ON cost_of_living_by_county.state_id = state.state_id
+        WHERE 
+            cost_of_living_by_county.county = %(county_name)s
+            AND state.state_id = %(state_id)s
+        LIMIT 1
+    """,
+    #########STATE DETAIL########################################
     "basic_state_snapshot": """
         SELECT 
             name, 
@@ -339,6 +363,47 @@ SQL_QUERIES = {
         WHERE 
             name = %(state_name)s;
     """,
+    "top_5_most_populous_cities_by_state": """
+        SELECT 
+            name, 
+            population,
+            AVG(crime_rate) AS average_crime_rate 
+        FROM 
+            city 
+        WHERE 
+            state_id = %(state_id)s
+        ORDER BY 
+            population DESC 
+        LIMIT 5;
+    """,
+    "top_5_cities_with_highest_crime_rate_by_state": """
+        SELECT 
+            name, 
+            crime_rate 
+        FROM 
+            city 
+        WHERE 
+            state_id = %(state_id)s
+        ORDER BY 
+            crime_rate DESC 
+        LIMIT 5;
+    """,
+    "number_of_natural_disasters_in_state": """
+        SELECT
+            s.name AS state_name,
+            COUNT(nd.id) AS disaster_count
+        FROM
+            state s
+                JOIN
+            natural_disaster nd
+            ON s.state_id = nd.state_id
+        WHERE
+            nd.date >= '2010-01-01'
+            AND s.name = %(state_name)s
+        GROUP BY
+            s.name
+    """,
+    #########ZIPCODE DETAIL########################################
     "basic_zipcode_snapshot": """
         SELECT 
             zc.code,
@@ -353,5 +418,17 @@ SQL_QUERIES = {
             zc.code = %(zip_code)s
         GROUP BY 
             zc.code;
-    """
+    """,
+    #########LIKES########################################
+    "number_of_likes_by_location": """
+        SELECT 
+            {id_column},
+            COUNT(*) AS number_of_likes
+        FROM 
+            {likes_table}
+        WHERE 
+            {id_column} = %(location_id)s
+        GROUP BY 
+            {id_column}
+    """,
 }

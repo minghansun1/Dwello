@@ -23,10 +23,6 @@ def cache_response(timeout=None, key_prefix=''):
             # Try to get from cache
             cached_response = redis_cache.get(cache_key)
             if cached_response is not None:
-                print("###############")
-                print(f"Cache hit for {cache_key}")
-                print(cached_response)
-                print("###############")
                 return Response(cached_response)
             
             # If not in cache, execute view
@@ -34,10 +30,6 @@ def cache_response(timeout=None, key_prefix=''):
             
             # Cache the response
             if response.status_code == 200:
-                print("###############")
-                print(f"Caching response for {cache_key}")
-                print(response.data)
-                print("###############")
                 redis_cache.set(
                     cache_key, 
                     response.data, 

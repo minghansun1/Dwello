@@ -29,9 +29,10 @@ from .cache import RedisCache
 User = get_user_model()
 redis_cache = RedisCache()
 
+
 def invalidate_location_cache(location_type: str):
     """Invalidate cache for specific location type"""
-    redis_cache.delete(f'top_liked:{location_type}')
+    redis_cache.delete(f"top_liked:{location_type}")
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -47,27 +48,26 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         Override to allow registration and login without authentication
         """
-        if self.action in ['register', 'login']:
+        if self.action in ["register", "login"]:
             return [AllowAny()]
         return super().get_permissions()
-    
+
     def get_serializer_class(self):
         """
         Return appropriate serializer class based on the action
         """
-        if self.action == 'register':
+        if self.action == "register":
             return UserRegistrationSerializer
         return self.serializer_class
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def register(self, request):
         """
         User registration endpoint
         """
         if not request.data:
             return Response(
-                {"error": "No data provided"}, 
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "No data provided"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         serializer = self.get_serializer(data=request.data)
@@ -132,8 +132,6 @@ class UserViewSet(viewsets.ModelViewSet):
         try:
             username = request.data.get("username")
             password = request.data.get("password")
-            print("USERNAME: ", username)
-            print("PASSWORD: ", password)
 
             if not username or not password:
                 return Response(
@@ -181,17 +179,17 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["post"])
     def logout(self, request):
         """
-        User logout endpoint. 
+        User logout endpoint.
         Blacklists the current refresh token to prevent its future use.
         Requires authentication.
         """
         try:
             # Get the refresh token from request
-            refresh_token = request.data.get('refresh_token')
+            refresh_token = request.data.get("refresh_token")
             if not refresh_token:
                 return Response(
-                    {"error": "Refresh token is required"}, 
-                    status=status.HTTP_400_BAD_REQUEST
+                    {"error": "Refresh token is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             # Blacklist refresh token
@@ -201,21 +199,19 @@ class UserViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 return Response(
                     {"error": "Invalid refresh token: " + str(e)},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            
+
             # Perform Django's logout
             logout(request)
 
             return Response(
-                {"message": "Successfully logged out"},
-                status=status.HTTP_200_OK
+                {"message": "Successfully logged out"}, status=status.HTTP_200_OK
             )
         except Exception as e:
             error_message = str(e)
             return Response(
-                {"error": error_message}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
     @action(detail=False, methods=["get"])
@@ -227,89 +223,104 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(user)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['POST'])
+    @action(detail=False, methods=["POST"])
     def like_location(self, request):
         """
         Toggle like status for a location (zipcode, neighborhood, city, or state).
         If already liked, it will unlike it. If not liked, it will like it.
         Requires authentication.
         """
-        location_type = request.data.get('type')
-        location_id = request.data.get('id')
+        location_type = request.data.get("type")
+        location_id = request.data.get("id")
 
         if not location_type or not location_id:
             raise ValidationError({"error": "Both type and id are required"})
 
         location_mapping = {
-            'zipcode': {
-                'table_name': 'user_likes_zipcode',
-                'id_column': 'zip_code',
-                'validator': lambda id: get_object_or_404(ZipCountyCode, code=id)
+            "zipcode": {
+                "table_name": "user_likes_zipcode",
+                "id_column": "zip_code",
+                "validator": lambda id: get_object_or_404(ZipCountyCode, code=id),
             },
-            'neighborhood': {
-                'table_name': 'user_likes_neighborhood',
-                'id_column': 'neighborhood_id',
-                'validator': lambda id: get_object_or_404(Neighborhood, id=id)
+            "neighborhood": {
+                "table_name": "user_likes_neighborhood",
+                "id_column": "neighborhood_id",
+                "validator": lambda id: get_object_or_404(Neighborhood, id=id),
             },
-            'city': {
-                'table_name': 'user_likes_city',
-                'id_column': 'city_id',
-                'validator': lambda id: get_object_or_404(City, id=id)
+            "city": {
+                "table_name": "user_likes_city",
+                "id_column": "city_id",
+                "validator": lambda id: get_object_or_404(City, id=id),
             },
-            'state': {
-                'table_name': 'user_likes_state',
-                'id_column': 'state_id',
-                'validator': lambda id: get_object_or_404(State, state_id=id)
-            }
+            "state": {
+                "table_name": "user_likes_state",
+                "id_column": "state_id",
+                "validator": lambda id: get_object_or_404(State, state_id=id),
+            },
         }
 
         if location_type not in location_mapping:
-            raise ValidationError({"error": f"Invalid location type. Must be one of: {', '.join(location_mapping.keys())}"})
+            raise ValidationError(
+                {
+                    "error": f"Invalid location type. Must be one of: {', '.join(location_mapping.keys())}"
+                }
+            )
 
         mapping = location_mapping[location_type]
-        mapping['validator'](location_id)
+        mapping["validator"](location_id)
 
         # Check if already liked
-        check_result = execute_query("check_if_liked", {
-            'table_name': mapping['table_name'],
-            'id_column': mapping['id_column'],
-            'user_id': request.user.id,
-            'location_id': location_id
-        })
+        check_result = execute_query(
+            "check_if_liked",
+            {
+                "table_name": mapping["table_name"],
+                "id_column": mapping["id_column"],
+                "user_id": request.user.id,
+                "location_id": location_id,
+            },
+        )
 
-        if check_result[0]['exists']:
+        if check_result[0]["exists"]:
             # Unlike
-            execute_query("unlike_location", {
-                'table_name': mapping['table_name'],
-                'id_column': mapping['id_column'],
-                'user_id': request.user.id,
-                'location_id': location_id
-            })
+            execute_query(
+                "unlike_location",
+                {
+                    "table_name": mapping["table_name"],
+                    "id_column": mapping["id_column"],
+                    "user_id": request.user.id,
+                    "location_id": location_id,
+                },
+            )
             message = "unliked"
         else:
             # Like
-            execute_query("like_location", {
-                'table_name': mapping['table_name'],
-                'id_column': mapping['id_column'],
-                'user_id': request.user.id,
-                'location_id': location_id
-            })
+            execute_query(
+                "like_location",
+                {
+                    "table_name": mapping["table_name"],
+                    "id_column": mapping["id_column"],
+                    "user_id": request.user.id,
+                    "location_id": location_id,
+                },
+            )
             message = "liked"
 
         # Invalidate related caches
         invalidate_location_cache(location_type)
-        
-        return Response({
-            "status": "success",
-            "message": f"Successfully {message} {location_type} {location_id}"
-        })    
+
+        return Response(
+            {
+                "status": "success",
+                "message": f"Successfully {message} {location_type} {location_id}",
+            }
+        )
 
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
 @cache_response(
-    timeout=settings.CACHE_TIMEOUT['PRICE_RANKING'],
-    key_prefix='neighborhood_price_ranking'
+    timeout=settings.CACHE_TIMEOUT["PRICE_RANKING"],
+    key_prefix="neighborhood_price_ranking",
 )
 def neighborhood_price_ranking(request):
     results = execute_query("neighborhood_price_ranking")
@@ -319,8 +330,7 @@ def neighborhood_price_ranking(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 @cache_response(
-    timeout=settings.CACHE_TIMEOUT['PRICE_RANKING'],
-    key_prefix='city_price_ranking'
+    timeout=settings.CACHE_TIMEOUT["PRICE_RANKING"], key_prefix="city_price_ranking"
 )
 def city_price_ranking(request):
     results = execute_query("city_price_ranking")
@@ -337,23 +347,38 @@ def preference_based_ranking(request):
         "preferred_crime_rate": request.data.get("preferred_crime_rate"),
         "industry_name": request.data.get("industry_name"),
         "preferred_industry_salary": request.data.get("preferred_industry_salary"),
-        "preferred_industry_jobs_1000": request.data.get("preferred_industry_jobs_1000"),
-        "preferred_population_density": request.data.get("preferred_population_density"),
+        "preferred_industry_jobs_1000": request.data.get(
+            "preferred_industry_jobs_1000"
+        ),
+        "preferred_population_density": request.data.get(
+            "preferred_population_density"
+        ),
         "preferred_population": request.data.get("preferred_population"),
         "preferred_latitude": request.data.get("preferred_latitude"),
         "preferred_longitude": request.data.get("preferred_longitude"),
-        "preferred_natural_disaster_count": request.data.get("preferred_natural_disaster_count"),
-
+        "preferred_natural_disaster_count": request.data.get(
+            "preferred_natural_disaster_count"
+        ),
         "importance_cost_of_living": request.data.get("importance_cost_of_living", 0),
-        "importance_median_home_price": request.data.get("importance_median_home_price", 0),
-        "importance_median_family_income": request.data.get("importance_median_income", 0),
+        "importance_median_home_price": request.data.get(
+            "importance_median_home_price", 0
+        ),
+        "importance_median_family_income": request.data.get(
+            "importance_median_income", 0
+        ),
         "importance_crime_rate": request.data.get("importance_crime_rate", 0),
         "importance_industry_salary": request.data.get("importance_industry_salary", 0),
-        "importance_industry_jobs_1000": request.data.get("importance_industry_jobs_1000", 0),
-        "importance_population_density": request.data.get("importance_population_density", 0),
+        "importance_industry_jobs_1000": request.data.get(
+            "importance_industry_jobs_1000", 0
+        ),
+        "importance_population_density": request.data.get(
+            "importance_population_density", 0
+        ),
         "importance_population": request.data.get("importance_population", 0),
         "importance_location": request.data.get("importance_location", 0),
-        "importance_natural_disaster_count": request.data.get("importance_natural_disaster_count", 0),
+        "importance_natural_disaster_count": request.data.get(
+            "importance_natural_disaster_count", 0
+        ),
         "num": request.data.get("num", 1000),
     }
     print(params)
@@ -367,6 +392,7 @@ def preference_based_ranking(request):
 def high_cost_cities_by_state(request):
     results = execute_query("high_cost_cities_by_state")
     return Response(results)
+
 
 @api_view(["POST"])
 def filter_neighborhoods(request):
@@ -386,7 +412,9 @@ def filter_neighborhoods(request):
         "min_pop": request.data.get("Min Population"),
         "max_pop": request.data.get("Max Population"),
         "num": request.data.get("num", 100),
-        "zip_code": int(request.data.get("Zip Code", 0)) if request.data.get("Zip Code") else 0,
+        "zip_code": (
+            int(request.data.get("Zip Code", 0)) if request.data.get("Zip Code") else 0
+        ),
         "city": request.data.get("City", None),
         "state": request.data.get("State", None),
         "county": request.data.get("County", None),
@@ -400,8 +428,7 @@ def filter_neighborhoods(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 @cache_response(
-    timeout=settings.CACHE_TIMEOUT['NATURAL_DISASTERS'],
-    key_prefix='natural_disasters'
+    timeout=settings.CACHE_TIMEOUT["NATURAL_DISASTERS"], key_prefix="natural_disasters"
 )
 def count_natural_disasters(request):
     results = execute_query("count_natural_disasters")
@@ -422,164 +449,167 @@ def find_nearest_cities(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
-@cache_response(
-    timeout=settings.CACHE_TIMEOUT['TOP_LIKED'],
-    key_prefix='top_liked'
-)
+@cache_response(timeout=settings.CACHE_TIMEOUT["TOP_LIKED"], key_prefix="top_liked")
 def top_liked_locations(request):
     """
     Get the most liked locations of a specific type.
     Returns up to 100 results, ordered by favorite count.
-    
+
     Supported types: zipcode, neighborhood, city, state
-    
+
     Query parameters:
     - type: The type of location (required)
     """
-    location_type = request.GET.get('type')
+    location_type = request.GET.get("type")
 
     if not location_type:
         return Response(
-            {"error": "Location type is required. Use 'type' parameter in URL query"}, 
-            status=status.HTTP_400_BAD_REQUEST
+            {"error": "Location type is required. Use 'type' parameter in URL query"},
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
     # Define mapping for different location types
     location_mapping = {
-        'zipcode': {
-            'query': 'top_liked_zipcodes',
-            'params': {
-                'table_name': 'zip_county_code',
-                'likes_table': 'user_likes_zipcode',
-                'id_column': 'code',
-                'location_id_column': 'zip_code'
-            }
+        "zipcode": {
+            "query": "top_liked_zipcodes",
+            "params": {
+                "table_name": "zip_county_code",
+                "likes_table": "user_likes_zipcode",
+                "id_column": "code",
+                "location_id_column": "zip_code",
+            },
         },
-        'neighborhood': {
-            'query': 'top_liked_location',
-            'params': {
-                'table_name': 'neighborhood',
-                'likes_table': 'user_likes_neighborhood',
-                'id_column': 'id',
-                'location_id_column': 'neighborhood_id'
-            }
+        "neighborhood": {
+            "query": "top_liked_location",
+            "params": {
+                "table_name": "neighborhood",
+                "likes_table": "user_likes_neighborhood",
+                "id_column": "id",
+                "location_id_column": "neighborhood_id",
+            },
         },
-        'city': {
-            'query': 'top_liked_location',
-            'params': {
-                'table_name': 'city',
-                'likes_table': 'user_likes_city',
-                'id_column': 'id',
-                'location_id_column': 'city_id'
-            }
+        "city": {
+            "query": "top_liked_location",
+            "params": {
+                "table_name": "city",
+                "likes_table": "user_likes_city",
+                "id_column": "id",
+                "location_id_column": "city_id",
+            },
         },
-        'state': {
-            'query': 'top_liked_location',
-            'params': {
-                'table_name': 'state',
-                'likes_table': 'user_likes_state',
-                'id_column': 'state_id',
-                'location_id_column': 'state_id'
-            }
-        }
+        "state": {
+            "query": "top_liked_location",
+            "params": {
+                "table_name": "state",
+                "likes_table": "user_likes_state",
+                "id_column": "state_id",
+                "location_id_column": "state_id",
+            },
+        },
     }
 
     if location_type not in location_mapping:
         return Response(
             {
                 "error": f"Invalid location type. Must be one of: {', '.join(location_mapping.keys())}"
-            }, 
-            status=status.HTTP_400_BAD_REQUEST
+            },
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
     try:
         mapping = location_mapping[location_type]
-        results = execute_query(mapping['query'], mapping['params'])
+        results = execute_query(mapping["query"], mapping["params"])
         return Response(results)
 
     except Exception as e:
         return Response(
             {
                 "error": "An error occurred while fetching top liked locations",
-                "details": str(e)
+                "details": str(e),
             },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def basic_city_snapshot(request):
     """Get basic information about a city"""
-    city_name = request.GET.get('city')
-    state_id = request.GET.get('state_id')
-    
+    city_name = request.GET.get("city")
+    state_id = request.GET.get("state_id")
+
     if not city_name or not state_id:
         return Response(
-            {"error": "Both city name and state_id are required"}, 
-            status=status.HTTP_400_BAD_REQUEST
+            {"error": "Both city name and state_id are required"},
+            status=status.HTTP_400_BAD_REQUEST,
         )
-    
-    results = execute_query("basic_city_snapshot", {
-        "city_name": city_name,
-        "state_id": state_id
-    })
+
+    results = execute_query(
+        "basic_city_snapshot", {"city_name": city_name, "state_id": state_id}
+    )
     return Response(results)
+
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def basic_county_snapshot(request):
     """Get basic information about a county"""
-    county_name = request.GET.get('county')
-    state_id = request.GET.get('state_id')
-    city_name = request.GET.get('city')
-    
+    county_name = request.GET.get("county")
+    state_id = request.GET.get("state_id")
+    city_name = request.GET.get("city")
+
     if not all([county_name, state_id, city_name]):
         return Response(
-            {"error": "County name, state_id, and city name are all required"}, 
-            status=status.HTTP_400_BAD_REQUEST
+            {"error": "County name, state_id, and city name are all required"},
+            status=status.HTTP_400_BAD_REQUEST,
         )
-    
-    results = execute_query("basic_county_snapshot", {
-        "county_name": county_name,
-        "state_id": state_id,
-        "city_name": city_name
-    })
+
+    results = execute_query(
+        "basic_county_snapshot",
+        {"county_name": county_name, "state_id": state_id, "city_name": city_name},
+    )
     return Response(results)
+
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def basic_state_snapshot(request):
     """Get basic information about a state"""
-    state_name = request.GET.get('state')
+    state_name = request.GET.get("state")
     if not state_name:
         return Response(
-            {"error": "State name is required"}, 
-            status=status.HTTP_400_BAD_REQUEST
+            {"error": "State name is required"}, status=status.HTTP_400_BAD_REQUEST
         )
-    
-    results = execute_query("basic_state_snapshot", {
-        "state_name": state_name
-    })
+
+    results = execute_query("basic_state_snapshot", {"state_name": state_name})
     return Response(results)
+
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def basic_zipcode_snapshot(request):
     """Get basic information about a zipcode"""
     try:
+<<<<<<< Updated upstream
         zip_code = int(request.GET.get('zipcode', 0))
         print(zip_code)
+=======
+        zip_code = int(request.GET.get("zipcode", 0))
+>>>>>>> Stashed changes
         if not zip_code:
             return Response(
-                {"error": "Zipcode is required"}, 
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "Zipcode is required"}, status=status.HTTP_400_BAD_REQUEST
             )
     except ValueError:
         return Response(
-            {"error": "Invalid zipcode format"}, 
-            status=status.HTTP_400_BAD_REQUEST
+            {"error": "Invalid zipcode format"}, status=status.HTTP_400_BAD_REQUEST
         )
+<<<<<<< Updated upstream
     results = execute_query("basic_zipcode_snapshot", {
         "zip_code": zip_code
     })
+=======
+
+    results = execute_query("basic_zipcode_snapshot", {"zip_code": zip_code})
+>>>>>>> Stashed changes
     return Response(results)

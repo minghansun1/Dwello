@@ -36,6 +36,6 @@ def execute_query(query_name, params=None):
             cursor.execute(SQL_QUERIES[query_name], params or {})
         
         if cursor.description:  # Only fetch if there are results
-            columns = [col[0] for col in cursor.description]
+            columns = [col[0].replace('_', ' ').title() for col in cursor.description]
             return [dict(zip(columns, row)) for row in cursor.fetchall()]
         return []  # Return empty list for queries with no results (like INSERT/DELETE)
