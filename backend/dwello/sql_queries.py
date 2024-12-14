@@ -1,28 +1,12 @@
 # Dictionary of SQL queries used by views.py
 SQL_QUERIES = {
-    "top_liked_neighborhoods": """
-        SELECT n.name AS location_name, COUNT(uln.user_id) AS favorite_count
-        FROM Neighborhood n
-        JOIN user_likes_neighborhood uln ON n.id = uln.neighborhood_id
-        GROUP BY n.id, n.name
+    "top_liked_location": """
+        SELECT t.name AS location_name, COUNT(ul.user_id) AS favorite_count
+        FROM {table_name} t
+        JOIN {likes_table} ul ON t.{id_column} = ul.{location_id_column}
+        GROUP BY t.{id_column}, t.name
         ORDER BY favorite_count DESC
-        LIMIT %(num)s
-    """,
-    "top_liked_cities": """
-        SELECT c.name AS location_name, COUNT(ulc.user_id) AS favorite_count
-        FROM city c
-        JOIN user_likes_city ulc ON c.id = ulc.city_id
-        GROUP BY c.id, c.name
-        ORDER BY favorite_count DESC
-        LIMIT %(num)s
-    """,
-    "top_liked_states": """
-        SELECT s.name AS location_name, COUNT(uls.user_id) AS favorite_count
-        FROM state s
-        JOIN user_likes_state uls ON s.state_id = uls.state_id
-        GROUP BY s.state_id, s.name
-        ORDER BY favorite_count DESC
-        LIMIT %(num)s
+        LIMIT 100
     """,
     "top_liked_zipcodes": """
         SELECT zcc.code AS zip_code, 
@@ -33,7 +17,7 @@ SQL_QUERIES = {
         JOIN user_likes_zipcode ulz ON zcc.code = ulz.zip_code
         GROUP BY zcc.code, zcc.city, zcc.county, zcc.state_id
         ORDER BY favorite_count DESC
-        LIMIT %(num)s
+        LIMIT 100
     """,
     "neighborhood_price_ranking": """
         SELECT n.name AS neighborhood_name,

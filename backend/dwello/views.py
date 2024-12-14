@@ -1,10 +1,9 @@
-from django.db import connection
 from rest_framework.decorators import (
     api_view,
     action,
+    permission_classes,
 )
 from rest_framework.response import Response
-from .sql_queries import SQL_QUERIES
 from django.contrib.auth import authenticate, login, logout
 from rest_framework import status
 from .models import UserProfile
@@ -295,6 +294,7 @@ class UserViewSet(viewsets.ModelViewSet):
         })    
 
 
+
 @api_view(["GET"])
 def neighborhood_price_ranking(request):
     results = execute_query("neighborhood_price_ranking")
@@ -402,3 +402,86 @@ def find_nearest_cities(request):
     }
     results = execute_query("find_nearest_cities", params)
     return Response(results)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def top_liked_locations(request):
+    """
+    Get the most liked locations of a specific type.
+    Returns up to 100 results, ordered by favorite count.
+    
+    Supported types: zipcode, neighborhood, city, state
+    
+    Query parameters:
+    - type: The type of location (required)
+    """
+    location_type = request.GET.get('type')
+
+    if not location_type:
+        return Response(
+            {"error": "Location type is required. Use 'type' parameter in URL query"}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Define mapping for different location types
+    location_mapping = {
+        'zipcode': {
+            'query': 'top_liked_zipcodes',
+            'params': {
+                'table_name': 'zip_county_code',
+                'likes_table': 'user_likes_zipcode',
+                'id_column': 'code',
+                'location_id_column': 'zip_code'
+            }
+        },
+        'neighborhood': {
+            'query': 'top_liked_location',
+            'params': {
+                'table_name': 'neighborhood',
+                'likes_table': 'user_likes_neighborhood',
+                'id_column': 'id',
+                'location_id_column': 'neighborhood_id'
+            }
+        },
+        'city': {
+            'query': 'top_liked_location',
+            'params': {
+                'table_name': 'city',
+                'likes_table': 'user_likes_city',
+                'id_column': 'id',
+                'location_id_column': 'city_id'
+            }
+        },
+        'state': {
+            'query': 'top_liked_location',
+            'params': {
+                'table_name': 'state',
+                'likes_table': 'user_likes_state',
+                'id_column': 'state_id',
+                'location_id_column': 'state_id'
+            }
+        }
+    }
+
+    if location_type not in location_mapping:
+        return Response(
+            {
+                "error": f"Invalid location type. Must be one of: {', '.join(location_mapping.keys())}"
+            }, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        mapping = location_mapping[location_type]
+        results = execute_query(mapping['query'], mapping['params'])
+        return Response(results)
+
+    except Exception as e:
+        return Response(
+            {
+                "error": "An error occurred while fetching top liked locations",
+                "details": str(e)
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

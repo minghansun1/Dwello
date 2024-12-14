@@ -4,7 +4,7 @@ from .sql_queries import SQL_QUERIES
 
 def execute_query(query_name, params=None):
     with connection.cursor() as cursor:
-        if query_name == "user_liked_locations":
+        if query_name in ["user_liked_locations", "top_liked_location", "top_liked_zipcodes"]:
             # Handle user_liked_locations query
             query_params = params.copy()
             table_name = query_params.pop('table_name')

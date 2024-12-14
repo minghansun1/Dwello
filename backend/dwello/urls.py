@@ -17,4 +17,5 @@ urlpatterns = [
     path('users/<int:user_id>/favorites/', views.get_user_favorites, name='user-favorites'),
     path('states/natural-disasters/', views.count_natural_disasters, name='natural-disasters'),
     path('cities/nearest/', views.find_nearest_cities, name='nearest-cities'),
+    path('top-liked-locations/', views.top_liked_locations, name='top-liked-locations'),
 ]
