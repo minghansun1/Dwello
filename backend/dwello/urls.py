@@ -1,11 +1,13 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from . import views
+
+router = DefaultRouter()
+router.register(r'users', views.UserViewSet, basename='user')
 
 app_name = 'dwello'
 urlpatterns = [
-    path('auth/signup/', views.user_signup, name='user-signup'),
-    path('auth/login/', views.user_login, name='user-login'),
-    path('auth/logout/', views.user_logout, name='user-logout'),
+    path('', include(router.urls)),
     path('neighborhoods/top-favorited/', views.top_liked_locations, name='top-favorited-neighborhoods'),
     path('neighborhoods/price-ranking/', views.neighborhood_price_ranking, name='neighborhood-price-ranking'),
     path('cities/price-ranking/', views.city_price_ranking, name='city-price-ranking'),

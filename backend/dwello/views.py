@@ -1,140 +1,190 @@
 from django.db import connection
 from rest_framework.decorators import (
     api_view,
-    authentication_classes,
-    permission_classes,
+    action,
 )
 from rest_framework.response import Response
 from .sql_queries import SQL_QUERIES
 from django.contrib.auth import authenticate, login, logout
 from rest_framework import status
 from .models import UserProfile
-from .serializers import UserSignupSerializer
+from .serializers import UserSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.authtoken.models import Token
-from rest_framework.authentication import TokenAuthentication
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework import serializers
+from rest_framework import viewsets
+from django.contrib.auth import get_user_model
+from .serializers import (
+    UserSerializer,
+    UserRegistrationSerializer,
+)
+
+User = get_user_model()
 
 
-@api_view(["POST"])
-@permission_classes([AllowAny])
-@authentication_classes([])
-def user_signup(request):
-    if not request.data:
-        return Response(
-            {"error": "No data provided"}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for handling all user-related operations including authentication
+    """
 
-    serializer = UserSignupSerializer(data=request.data)
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get_permissions(self):
+        """
+        Override to allow registration and login without authentication
+        """
+        if self.action in ['register', 'login']:
+            return [AllowAny()]
+        return super().get_permissions()
     
-    try:
-        # This will handle all the validation including existing user checks
-        if not serializer.is_valid():
-            return Response({
-                "error": "Validation failed",
-                "details": serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
+    def get_serializer_class(self):
+        """
+        Return appropriate serializer class based on the action
+        """
+        if self.action == 'register':
+            return UserRegistrationSerializer
+        return self.serializer_class
 
-        user = serializer.save()
-        token = Token.objects.create(user=user)
-        login(request, user)
-
-        profile = user.userprofile
-        city = profile.city
-
-        return Response({
-            "message": "User created and logged in successfully",
-            "token": token.key,
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "income": profile.income,
-                "city": {
-                    "name": city.name,
-                    "state": city.state.state_id
-                } if city else None
-            }
-        }, status=status.HTTP_201_CREATED)
-
-    except serializers.ValidationError as e:
-        return Response({
-            "error": "Validation error",
-            "details": e.detail
-        }, status=status.HTTP_400_BAD_REQUEST)
-        
-    except Exception as e:
-        return Response({
-            "error": "An unexpected error occurred",
-            "details": str(e),
-            "type": type(e).__name__
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-@api_view(["POST"])
-@permission_classes([AllowAny])
-@authentication_classes([])
-def user_login(request):
-    try:
-        username = request.data.get("username")
-        password = request.data.get("password")
-        
-        if not username or not password:
+    @action(detail=False, methods=['post'])
+    def register(self, request):
+        """
+        User registration endpoint
+        """
+        if not request.data:
             return Response(
-                {"error": "Please provide both username and password"},
+                {"error": "No data provided"}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        user = authenticate(username=username, password=password)
-        
-        if not user:
+        serializer = self.get_serializer(data=request.data)
+
+        try:
+            if not serializer.is_valid():
+                return Response(
+                    {"error": "Validation failed", "details": serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            user = serializer.save()
+            refresh = RefreshToken.for_user(user)
+            login(request, user)
+
+            profile = user.userprofile
+            city = profile.city
+
             return Response(
-                {"error": "Invalid credentials"},
-                status=status.HTTP_401_UNAUTHORIZED
+                {
+                    "message": "User created and logged in successfully",
+                    "tokens": {
+                        "refresh": str(refresh),
+                        "access": str(refresh.access_token),
+                    },
+                    "user": {
+                        "id": user.id,
+                        "username": user.username,
+                        "email": user.email,
+                        "income": profile.income,
+                        "city": (
+                            {"name": city.name, "state": city.state.state_id}
+                            if city
+                            else None
+                        ),
+                    },
+                },
+                status=status.HTTP_201_CREATED,
             )
 
-        # Get or create token
-        token, _ = Token.objects.get_or_create(user=user)
-        
-        # Get user profile info
-        profile = user.userprofile
-        city = profile.city if hasattr(user, 'userprofile') else None
+        except serializers.ValidationError as e:
+            return Response(
+                {"error": "Validation error", "details": e.detail},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        return Response({
-            "message": "Login successful",
-            "token": token.key,
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "city": {
-                    "name": city.name,
-                    "state": city.state.state_id
-                } if city else None
-            }
-        })
+        except Exception as e:
+            return Response(
+                {
+                    "error": "An unexpected error occurred",
+                    "details": str(e),
+                    "type": type(e).__name__,
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
-    except Exception as e:
-        return Response(
-            {"error": str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+    @action(detail=False, methods=["post"])
+    def login(self, request):
+        """
+        User login endpoint
+        """
+        try:
+            username = request.data.get("username")
+            password = request.data.get("password")
 
+            if not username or not password:
+                return Response(
+                    {"error": "Please provide both username and password"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-@authentication_classes([TokenAuthentication])
-def user_logout(request):
-    try:
-        # Delete the user's token
-        request.user.auth_token.delete()
-        logout(request)
-        return Response({"message": "Successfully logged out"})
+            user = authenticate(username=username, password=password)
 
-    except Exception as e:
-        return Response(
-            {"error": str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+            if not user:
+                return Response(
+                    {"error": "Invalid credentials"},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
+            refresh = RefreshToken.for_user(user)
+
+            profile = user.userprofile
+            city = profile.city if hasattr(user, "userprofile") else None
+
+            return Response(
+                {
+                    "message": "Login successful",
+                    "tokens": {
+                        "refresh": str(refresh),
+                        "access": str(refresh.access_token),
+                    },
+                    "user": {
+                        "id": user.id,
+                        "username": user.username,
+                        "city": (
+                            {"name": city.name, "state": city.state.state_id}
+                            if city
+                            else None
+                        ),
+                    },
+                }
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=["post"])
+    def logout(self, request):
+        """
+        User logout endpoint
+        """
+        try:
+            logout(request)
+            return Response({"message": "Successfully logged out"})
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=["get"])
+    def get_user_profile(self, request):
+        """
+        Get current user's profile
+        """
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
 
 
 def execute_query(query_name, params=None):
