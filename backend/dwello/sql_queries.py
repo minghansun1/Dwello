@@ -41,6 +41,8 @@ SQL_QUERIES = {
     "preference_based_ranking": """
         WITH neighborhood_score AS (
             SELECT n2.id as id, n2.city_id, n2.state_id, n2.name AS neighborhood_name,
+            CAST(SUM(CAST(hd.median_sale_price_adjusted AS DECIMAL(38, 2)) * hd.num_homes_sold) /
+                        NULLIF(SUM(hd.num_homes_sold), 0) AS INT) AS median_sale_price_adjusted,
                 ABS(CAST(SUM(CAST(hd.median_sale_price_adjusted AS DECIMAL(38, 2)) * hd.num_homes_sold) /
                         NULLIF(SUM(hd.num_homes_sold), 0) AS INT)-%(preferred_median_home_price)s)*%(importance_median_home_price)s AS neighborhood_price_score
             FROM neighborhood n2
@@ -48,21 +50,24 @@ SQL_QUERIES = {
             GROUP BY n2.id
         ),
         city_score AS(
-            SELECT name, id, state_id, county,
+            SELECT name as city_name, id, state_id, county,
+                lat, lng, crime_rate, density, population,
                 SQRT(POWER(lat-%(preferred_latitude)s, 2)+POWER(lng-%(preferred_longitude)s,2)) * %(importance_location)s AS city_location_score,
                 ABS(crime_rate-%(preferred_crime_rate)s) * %(importance_crime_rate)s AS city_crime_rate_score,
                 ABS(density-%(preferred_population_density)s) * %(importance_population_density)s AS city_population_density_score,
                 ABS(population-%(preferred_population)s) * %(importance_population)s AS city_population_score
-            FROM city
+            FROM city c2
         ),
         industry_city_score AS(
-            SELECT city_id, ABS(a_median-%(preferred_industry_salary)s) * %(importance_industry_salary)s AS city_industry_salary_score,
+            SELECT city_id, industry_name, a_median, jobs_1000,
+            ABS(a_median-%(preferred_industry_salary)s) * %(importance_industry_salary)s AS city_industry_salary_score,
             ABS(a_median-%(preferred_industry_jobs_1000)s) * %(importance_industry_jobs_1000)s AS city_industry_jobs_1000_score
             FROM industry_city_data
             WHERE industry_name = %(industry_name)s
         ),
         state_score AS(
-            SELECT s2.state_id, ABS(COUNT(*)-%(preferred_natural_disaster_count)s) * %(importance_natural_disaster_count)s AS state_natural_disaster_score
+            SELECT s2.state_id, COUNT(*) AS natural_disaster_count,
+            ABS(COUNT(*)-%(preferred_natural_disaster_count)s) * %(importance_natural_disaster_count)s AS state_natural_disaster_score
             FROM state s2
                     JOIN natural_disaster
                         ON s2.state_id = natural_disaster.state_id
@@ -70,13 +75,16 @@ SQL_QUERIES = {
             GROUP BY s2.state_id
         ),
         county_score AS(
-            SELECT county, state_id, ABS(AVG(total_cost)-%(preferred_cost_of_living)s) * %(importance_cost_of_living)s AS county_cost_of_living_score,
+            SELECT county, state_id, AVG(total_cost) as total_cost_of_living, AVG(median_family_income) as median_family_income,
+            ABS(AVG(total_cost)-%(preferred_cost_of_living)s) * %(importance_cost_of_living)s AS county_cost_of_living_score,
             ABS(AVG(median_family_income)-%(preferred_median_family_income)s) * %(importance_median_family_income)s AS county_family_median_income_score
             FROM cost_of_living_by_county
             GROUP BY county, state_id
         )
 
-        SELECT neighborhood_name,
+        SELECT neighborhood_name, median_sale_price_adjusted, city_name,
+            city_name, s.state_id, co.county, lat, lng, crime_rate, density, population,
+            industry_name, a_median, jobs_1000, total_cost_of_living, median_family_income,
             (neighborhood_price_score+city_location_score+city_crime_rate_score+city_industry_salary_score+city_industry_jobs_1000_score+state_natural_disaster_score) AS total_score
         FROM neighborhood_score n
         JOIN city_score c

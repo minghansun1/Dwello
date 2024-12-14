@@ -10,10 +10,10 @@ const Login = () => {
   const navigate = useNavigate()
 
   const handleSubmit = (e) => {
+    localStorage.clear()
     e.preventDefault();
     console.log("Username:", username);
     console.log("Password:", password);
-
     api.post("/api/users/login/", { "username": username, "password": password })
         .then((response) => {
             console.log("Login successful:", response.data);

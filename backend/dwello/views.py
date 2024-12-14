@@ -124,6 +124,8 @@ class UserViewSet(viewsets.ModelViewSet):
         try:
             username = request.data.get("username")
             password = request.data.get("password")
+            print("USERNAME: ", username)
+            print("PASSWORD: ", password)
 
             if not username or not password:
                 return Response(
