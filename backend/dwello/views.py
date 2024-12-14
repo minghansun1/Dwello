@@ -568,6 +568,7 @@ def basic_zipcode_snapshot(request):
     """Get basic information about a zipcode"""
     try:
         zip_code = int(request.GET.get('zipcode', 0))
+        print(zip_code)
         if not zip_code:
             return Response(
                 {"error": "Zipcode is required"}, 
@@ -578,7 +579,6 @@ def basic_zipcode_snapshot(request):
             {"error": "Invalid zipcode format"}, 
             status=status.HTTP_400_BAD_REQUEST
         )
-    
     results = execute_query("basic_zipcode_snapshot", {
         "zip_code": zip_code
     })

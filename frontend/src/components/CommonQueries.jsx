@@ -209,36 +209,6 @@ function CommonQueries(){
                     >
                         Random Search Parameters
                     </button>
-                    <button
-                        className="bg-blue-500 text-white font-medium py-3 rounded shadow hover:bg-blue-600 focus:outline-none"
-                        onClick={() => handleButtonClick("Option 11")}
-                    >
-                        States with Most Natural Disasters
-                    </button>
-                    <button
-                        className="bg-blue-500 text-white font-medium py-3 rounded shadow hover:bg-blue-600 focus:outline-none"
-                        onClick={() => handleButtonClick("Option 12")}
-                    >
-                        States with Least Natural Disasters
-                    </button>
-                    <button
-                        className="bg-blue-500 text-white font-medium py-3 rounded shadow hover:bg-blue-600 focus:outline-none"
-                        onClick={() => handleButtonClick("Option 13")}
-                    >
-                        Counties with Highest Cost of Living
-                    </button>
-                    <button
-                        className="bg-blue-500 text-white font-medium py-3 rounded shadow hover:bg-blue-600 focus:outline-none"
-                        onClick={() => handleButtonClick("Option 14")}
-                    >
-                        Counties with Lowest Cost of Living
-                    </button>
-                    <button
-                        className="bg-blue-500 text-white font-medium py-3 rounded shadow hover:bg-blue-600 focus:outline-none"
-                        onClick={() => handleButtonClick("Option 15")}
-                    >
-                        Random Search Parameters
-                    </button>
                 </div>
             </div>
         </div>

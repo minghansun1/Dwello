@@ -83,12 +83,12 @@ function Map() {
   
     const currPlace = await currFeature.fetchPlace();
     const currState = await currStateFeature.fetchPlace();
-    let stateData;
     let content;
 
     switch(mapType) {
       case "State":
         try {
+          console.log(currState.displayName);
           const response = await api.get(`/api/states/snapshot/?state=${currState.displayName}`);
           const stateData = response.data[0];
           console.log("State Data:", stateData);
@@ -111,7 +111,7 @@ function Map() {
         break;
       case "County":
         try {
-          console.log(currPlace);
+          console.log(currPlace.displayName);
           const response = await api.get(`/api/counties/snapshot/?county=${currPlace.displayName.replace(/ County$/, '')}`);
           const countyData = response.data[0];
           console.log("County Data:", countyData);
