@@ -10,7 +10,7 @@ const SearchPage = () => {
   };
 
   return (
-    <div>
+    <div className="pt-16">
         <Navbar/>
         <div className="min-h-screen bg-gray-100 p-6">
             <CommonQueries/>

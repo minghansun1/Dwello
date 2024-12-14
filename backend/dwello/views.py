@@ -354,7 +354,7 @@ def preference_based_ranking(request):
         "importance_population": request.data.get("importance_population", 0),
         "importance_location": request.data.get("importance_location", 0),
         "importance_natural_disaster_count": request.data.get("importance_natural_disaster_count", 0),
-        "num": request.data.get("num", 50),
+        "num": request.data.get("num", 1000),
     }
     print(params)
     results = execute_query("preference_based_ranking", params)

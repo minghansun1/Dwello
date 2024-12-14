@@ -41,7 +41,7 @@ const Navbar = () => {
         }
         const decoded = jwtDecode(token)
         const tokenExpiration = decoded.exp
-        const now = Date.now() / 1000
+        const now = Date.now() / "1000"
 
         if (tokenExpiration < now) {
             await refreshToken()
@@ -71,7 +71,7 @@ const Navbar = () => {
   }, [isOpen]);
 
   return (
-    <nav className="bg-gray-800 text-white">
+    <nav className="bg-gray-800 text-white fixed top-0 left-0 w-full z-10">
       <div className="container mx-auto flex justify-between items-center px-4 py-3">
         {/* Logo */}
         <Link to="/" className="text-4xl font-bold hover:text-gray-300">

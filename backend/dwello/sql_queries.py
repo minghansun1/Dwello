@@ -231,7 +231,7 @@ SQL_QUERIES = {
         JOIN industry_city_filtered icf
             ON icf.city_id = cf.id
 
-        LIMIT COALESCE(%(num)s, 100)
+        LIMIT COALESCE(%(num)s, 1000)
 
     """,
     "count_natural_disasters": """

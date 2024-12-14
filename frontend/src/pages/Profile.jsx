@@ -62,7 +62,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="bg-gray-100">
+    <div className="bg-gray-100 pt-16">
       {/* Navbar */}
       <Navbar />
       <div className="p-8" style={{ minHeight: contentHeight }}>

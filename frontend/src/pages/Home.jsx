@@ -8,7 +8,7 @@ const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 function Home() {
 
   return (
-    <div>
+    <div className="pt-16">
       <Navbar />
       <Map />
     </div>

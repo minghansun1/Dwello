@@ -1,7 +1,7 @@
 import Navbar from "../components/Navbar"
 
 function About(){
-    return <div>
+    return <div className="pt-16">
         <div>
             <Navbar />
             <h1>About Us</h1>
