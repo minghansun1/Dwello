@@ -90,7 +90,7 @@ const Navbar = () => {
         <ul className="hidden md:flex space-x-6">
           <li>
             <Link to="/" className="hover:text-gray-300">
-              Homepage
+              Map
             </Link>
           </li>
           <li>
@@ -153,7 +153,7 @@ const Navbar = () => {
             className="block hover:text-gray-300"
             onClick={() => setIsOpen(false)}
           >
-            Homepage
+            Map
           </Link>
         </li>
         <li className="p-4 border-b border-gray-700">

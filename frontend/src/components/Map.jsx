@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { LoadScript, useJsApiLoader } from "@react-google-maps/api";
 import { use } from "react";
+import api from "../api";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -8,21 +9,33 @@ function Map() {
   const mapRef = useRef(null); // Reference to the map container
   const mapInstanceRef = useRef(null); // Reference to the map instance
   const [mapType, setMapType] = useState("State"); // "State", "County", "Zip Code", or "City"
-  const [mapHeight, setMapHeight] = useState("100vh");
+  const [mapHeight, setMapHeight] = useState("100vh")
+  const [selectedOption, setSelectedOption] = useState("option1");
+  const [currFeature, setCurrFeature] = useState(null);
+  const [currStateFeature, setCurrStateFeature] = useState(null);
+  const [clickLatLng, setClickLatLng] = useState(null);
   let lastInteractedFeatureIds = [];
   let lastClickedFeatureIds = [];
-  let infoWindow;
-  const [selectedOption, setSelectedOption] = useState("option1");
+  const infoWindowRef = useRef(null);
 
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
   });
 
   const handleClick = (e, featureLayer, map) => {
+    //console.log("CurrFeature", e.features[0]);
+    const feature = e.features[0];
+    setCurrFeature(feature);
+    setClickLatLng(e.latLng);
     lastClickedFeatureIds = e.features.map((f) => f.placeId);
     lastInteractedFeatureIds = [];
-    featureLayer.style = applyStyle;
-    createInfoWindow(e, map);
+  };
+
+  const handleStateClick = (e) => {
+    //console.log("StateFeature", e.features[0]);
+    const feature = e.features[0];
+    setClickLatLng(e.latLng);
+    setCurrStateFeature(feature);
   };
 
   const handleMouseMove = (e, featureLayer) => {
@@ -57,26 +70,123 @@ function Map() {
     ...styleDefault,
     strokeWeight: 4.0,
   };
-
+  useEffect(() => {
+    if (currFeature && currStateFeature && mapInstanceRef.current) {
+      createInfoWindow({ latLng: clickLatLng }, mapInstanceRef.current);
+    }
+  }, [currFeature, currStateFeature]);
+  
   async function createInfoWindow(event, map) {
-    let feature = event.features[0];
-    if (!feature.placeId) return;
+    //console.log("Creating InfoWindow");
+    //console.log(currFeature);
+    //console.log(currStateFeature);
+  
+    const currPlace = await currFeature.fetchPlace();
+    const currState = await currStateFeature.fetchPlace();
+    let stateData;
+    let content;
 
-    // Fetch the place details
-    const place = await feature.fetchPlace();
-    const content = `
-      <span style="font-size:small">
-        Display name: ${place.displayName}<br/>
-        Place ID: ${feature.placeId}<br/>
-        Feature type: ${feature.featureType}
-      </span>
-    `;
+    switch(mapType) {
+      case "State":
+        try {
+          const response = await api.get(`/api/states/snapshot/?state=${currState.displayName}`);
+          const stateData = response.data[0];
+          console.log("State Data:", stateData);
+          
+          if (stateData) {
+            content = `
+              <span style="font-size:small">
+                State: ${currState.displayName}<br/>
+                Average Crime Rate: ${stateData.average_crime_rate}<br/>
+                Average Income: ${stateData.average_median_family_income}<br/>
+              </span>
+            `;
+          } else {
+            content = `<span style="font-size:small">No data available for ${currState.displayName}</span>`;
+          }
+        } catch (error) {
+          console.error("Error fetching state data:", error);
+          content = `<span style="font-size:small">Error fetching state data</span>`;
+        }
+        break;
+      case "County":
+        try {
+          console.log(currPlace);
+          const response = await api.get(`/api/counties/snapshot/?county=${currPlace.displayName.replace(/ County$/, '')}`);
+          const countyData = response.data[0];
+          console.log("County Data:", countyData);
+          
+          if (countyData) {
+            content = `
+              <span style="font-size:small">
+                County: ${currPlace.displayName}<br/>
+                State: ${currState.displayName}<br/>
+                Food Cost: ${countyData.food_cost}<br/>
+                Housing Cost: ${countyData.housing_cost}<br/>
+                Healthcare Cost: ${countyData.healthcare_cost}<br/>
+              </span>
+            `;
+          } else {
+            content = `<span style="font-size:small">No data available for ${currPlace.displayName}</span>`;
+          }
+        } catch (error) {
+          console.error("Error fetching state data:", error);
+          content = `<span style="font-size:small">Error fetching state data</span>`;
+        }
+        break;
+      case "Zip Code":
+        try{
+          console.log(currPlace);
+          response = await api.get(`/api/zipcodes/snapshot/?zipcode=${currPlace.displayName}`);
+          zipCodeData = response.data[0];
+          console.log("Zip Code Data:", zipCodeData);
+            
+          if (zipCodeData) {
+          content = `
+            <span style="font-size:small">
+              Zip Code: ${currPlace.displayName}<br/>
+              State: ${currState.displayName}<br/>
+              Average Housing Price: ${zipCodeData.avg_housing_cost}<br/>
+            </span>
+          `;
+          } else {
+            content = `<span style="font-size:small">No data available for ${currPlace.displayName}</span>`;
+          }
+        } catch (error) {
+          content = `<span style="font-size:small">Error fetching zip code data</span>`;
+        }
+        break;
+      case "City":
+        try{
+          console.log(currPlace);
+          response = await api.get(`/api/cities/snapshot/?city=${currPlace.displayName}`);
+          cityData = response.data[0];
+          console.log("City Data:", cityData);
+            
+          if (cityData) {
+          content = `
+            <span style="font-size:small">
+              City: ${currPlace.displayName}<br/>
+              State: ${currState.displayName}<br/>
+            </span>
+          `;
+          } else {
+            content = `<span style="font-size:small">No data available for ${currPlace.displayName}</span>`;
+          }
+        } catch (error) {
+          content = `<span style="font-size:small">Error fetching city data</span>`;
+        }
+        break;
+    }
 
-    // Update the InfoWindow
+    
+  
+    // Use the event's latLng position for the InfoWindow
     updateInfoWindow(content, event.latLng, map);
   }
 
   function updateInfoWindow(content, center, map) {
+    const infoWindow = infoWindowRef.current;
     if (!infoWindow) {
       console.error("InfoWindow is not initialized.");
       return;
@@ -94,7 +204,6 @@ function Map() {
       console.error("Google Maps API is not loaded.");
       return;
     }
-
     if (!mapRef.current) {
       console.error("Map container is not attached.");
       return;
@@ -117,19 +226,16 @@ function Map() {
     mapInstanceRef.current = map; // Store the map instance in a ref
 
     const featureLayer = loadFeatureLayer(map, mapType);
+    const stateFeatureLayer = loadFeatureLayer(map, "State");
 
     // Initialize the InfoWindow
-    infoWindow = new InfoWindow({});
-
-    // Reset styles on map mousemove
-    map.addListener("mousemove", () => {
-      if (lastInteractedFeatureIds?.length) {
-        lastInteractedFeatureIds = [];
-        featureLayer.style = applyStyle;
-      }
-    });
+    infoWindowRef.current = new InfoWindow({});
 
     featureLayer.style = applyStyle;
+    stateFeatureLayer.style = applyStyle;
+    featureLayer.addListener("mousemove", (e) => handleMouseMove(e, featureLayer));
+    featureLayer.addListener("click", (e) => handleClick(e, featureLayer, map));
+    stateFeatureLayer.addListener("click", (e) => handleStateClick(e, stateFeatureLayer, map));
   };
 
   const loadFeatureLayer = (map, mapType) => {
@@ -159,8 +265,6 @@ function Map() {
         console.error("Invalid map type:", mapType);
         return null;
     }
-    featureLayer.addListener("mousemove", (e) => handleMouseMove(e, featureLayer));
-    featureLayer.addListener("click", (e) => handleClick(e, featureLayer, map));
     return featureLayer;
   };
 
