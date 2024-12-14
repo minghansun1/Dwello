@@ -19,6 +19,10 @@ from .serializers import (
     UserSerializer,
     UserRegistrationSerializer,
 )
+from rest_framework.exceptions import ValidationError
+from .models import City, State, Neighborhood, ZipCountyCode
+from django.shortcuts import get_object_or_404
+from .utils import execute_query
 
 User = get_user_model()
 
@@ -168,37 +172,127 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["post"])
     def logout(self, request):
         """
-        User logout endpoint
+        User logout endpoint. 
+        Blacklists the current refresh token to prevent its future use.
+        Requires authentication.
         """
         try:
+            # Get the refresh token from request
+            refresh_token = request.data.get('refresh_token')
+            if not refresh_token:
+                return Response(
+                    {"error": "Refresh token is required"}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Blacklist refresh token
+            try:
+                token = RefreshToken(refresh_token)
+                print("REFRESH TOKEN: ", token)
+                token.blacklist()
+                print("REFRESH TOKEN BLACKLISTED")
+            except Exception as e:
+                return Response(
+                    {"error": "Invalid refresh token: " + str(e)},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Perform Django's logout
             logout(request)
-            return Response({"message": "Successfully logged out"})
-        except Exception as e:
+
             return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"message": "Successfully logged out"},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            error_message = str(e)
+            return Response(
+                {"error": error_message}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
     @action(detail=False, methods=["get"])
     def get_user_profile(self, request):
         """
-        Get current user's profile
+        Get current user's profile. Requires authentication.
         """
-        serializer = UserSerializer(request.user)
+        user = request.user
+        serializer = self.get_serializer(user)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['POST'])
+    def like_location(self, request):
+        """
+        Toggle like status for a location (zipcode, neighborhood, city, or state).
+        If already liked, it will unlike it. If not liked, it will like it.
+        Requires authentication.
+        """
+        location_type = request.data.get('type')
+        location_id = request.data.get('id')
 
-def execute_query(query_name, params=None):
-    with connection.cursor() as cursor:
-        cursor.execute(SQL_QUERIES[query_name], params or {})
-        columns = [col[0] for col in cursor.description]
-        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+        if not location_type or not location_id:
+            raise ValidationError({"error": "Both type and id are required"})
 
+        location_mapping = {
+            'zipcode': {
+                'table_name': 'user_likes_zipcode',
+                'id_column': 'zip_code',
+                'validator': lambda id: get_object_or_404(ZipCountyCode, code=id)
+            },
+            'neighborhood': {
+                'table_name': 'user_likes_neighborhood',
+                'id_column': 'neighborhood_id',
+                'validator': lambda id: get_object_or_404(Neighborhood, id=id)
+            },
+            'city': {
+                'table_name': 'user_likes_city',
+                'id_column': 'city_id',
+                'validator': lambda id: get_object_or_404(City, id=id)
+            },
+            'state': {
+                'table_name': 'user_likes_state',
+                'id_column': 'state_id',
+                'validator': lambda id: get_object_or_404(State, state_id=id)
+            }
+        }
 
-@api_view(["GET"])
-def top_liked_locations(request):
-    num_locations = request.GET.get("num", 10)
-    results = execute_query("top_liked_locations", {"num": num_locations})
-    return Response(results)
+        if location_type not in location_mapping:
+            raise ValidationError({"error": f"Invalid location type. Must be one of: {', '.join(location_mapping.keys())}"})
+
+        mapping = location_mapping[location_type]
+        mapping['validator'](location_id)
+
+        # Check if already liked
+        check_result = execute_query("check_if_liked", {
+            'table_name': mapping['table_name'],
+            'id_column': mapping['id_column'],
+            'user_id': request.user.id,
+            'location_id': location_id
+        })
+
+        if check_result[0]['exists']:
+            # Unlike
+            execute_query("unlike_location", {
+                'table_name': mapping['table_name'],
+                'id_column': mapping['id_column'],
+                'user_id': request.user.id,
+                'location_id': location_id
+            })
+            message = "unliked"
+        else:
+            # Like
+            execute_query("like_location", {
+                'table_name': mapping['table_name'],
+                'id_column': mapping['id_column'],
+                'user_id': request.user.id,
+                'location_id': location_id
+            })
+            message = "liked"
+
+        return Response({
+            "status": "success",
+            "message": f"Successfully {message} {location_type} {location_id}"
+        })    
 
 
 @api_view(["GET"])

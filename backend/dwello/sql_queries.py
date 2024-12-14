@@ -248,29 +248,39 @@ SQL_QUERIES = {
             distance_km ASC
         LIMIT %(num)s;
     """,
-    "check_zipcode_exists": """
-        SELECT EXISTS(
-            SELECT 1 FROM zip_county_code 
-            WHERE code = %(zip_code)s
-        )
-    """,
-    
     "like_location": """
-        INSERT INTO %(table_name)s (user_id, %(id_column)s)
+        INSERT INTO {table_name} (user_id, {id_column})
         VALUES (%(user_id)s, %(location_id)s)
     """,
-    
     "unlike_location": """
-        DELETE FROM %(table_name)s
+        DELETE FROM {table_name}
         WHERE user_id = %(user_id)s
-        AND %(id_column)s = %(location_id)s
+        AND {id_column} = %(location_id)s
     """,
     "check_if_liked": """
         SELECT EXISTS (
             SELECT 1 
-            FROM %(table_name)s
+            FROM {table_name}
             WHERE user_id = %(user_id)s
-            AND %(id_column)s = %(location_id)s
+            AND {id_column} = %(location_id)s
         )
     """,
+    "user_liked_locations": """
+        SELECT t.name AS location_name
+        FROM {table_name} t
+        JOIN {likes_table} ul ON t.{id_column} = ul.{location_id_column}
+        WHERE ul.user_id = %(user_id)s
+        ORDER BY t.name
+    """,
+
+    "user_liked_zipcodes": """
+        SELECT zcc.code AS zip_code,
+               zcc.city AS city_name,
+               zcc.county AS county_name,
+               zcc.state_id
+        FROM zip_county_code zcc
+        JOIN user_likes_zipcode ulz ON zcc.code = ulz.zip_code
+        WHERE ulz.user_id = %(user_id)s
+        ORDER BY zcc.code
+    """
 }

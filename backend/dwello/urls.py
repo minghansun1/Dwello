@@ -8,7 +8,6 @@ router.register(r'users', views.UserViewSet, basename='user')
 app_name = 'dwello'
 urlpatterns = [
     path('', include(router.urls)),
-    path('neighborhoods/top-favorited/', views.top_liked_locations, name='top-favorited-neighborhoods'),
     path('neighborhoods/price-ranking/', views.neighborhood_price_ranking, name='neighborhood-price-ranking'),
     path('cities/price-ranking/', views.city_price_ranking, name='city-price-ranking'),
     path('neighborhoods/preference-ranking/', views.preference_based_ranking, name='preference-based-ranking'),
