@@ -556,9 +556,8 @@ def basic_county_snapshot(request):
     """Get basic information about a county"""
     county_name = request.GET.get("county")
     state_id = request.GET.get("state_id")
-    city_name = request.GET.get("city")
 
-    if not all([county_name, state_id, city_name]):
+    if not all([county_name, state_id]):
         return Response(
             {"error": "County name, state_id, and city name are all required"},
             status=status.HTTP_400_BAD_REQUEST,
@@ -566,7 +565,7 @@ def basic_county_snapshot(request):
 
     results = execute_query(
         "basic_county_snapshot",
-        {"county_name": county_name, "state_id": state_id, "city_name": city_name},
+        {"county_name": county_name, "state_id": state_id},
     )
     return Response(results)
 
@@ -590,12 +589,7 @@ def basic_state_snapshot(request):
 def basic_zipcode_snapshot(request):
     """Get basic information about a zipcode"""
     try:
-<<<<<<< Updated upstream
-        zip_code = int(request.GET.get('zipcode', 0))
-        print(zip_code)
-=======
         zip_code = int(request.GET.get("zipcode", 0))
->>>>>>> Stashed changes
         if not zip_code:
             return Response(
                 {"error": "Zipcode is required"}, status=status.HTTP_400_BAD_REQUEST
@@ -604,12 +598,6 @@ def basic_zipcode_snapshot(request):
         return Response(
             {"error": "Invalid zipcode format"}, status=status.HTTP_400_BAD_REQUEST
         )
-<<<<<<< Updated upstream
-    results = execute_query("basic_zipcode_snapshot", {
-        "zip_code": zip_code
-    })
-=======
 
     results = execute_query("basic_zipcode_snapshot", {"zip_code": zip_code})
->>>>>>> Stashed changes
     return Response(results)
