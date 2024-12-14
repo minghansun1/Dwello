@@ -197,9 +197,7 @@ class UserViewSet(viewsets.ModelViewSet):
             # Blacklist refresh token
             try:
                 token = RefreshToken(refresh_token)
-                print("REFRESH TOKEN: ", token)
                 token.blacklist()
-                print("REFRESH TOKEN BLACKLISTED")
             except Exception as e:
                 return Response(
                     {"error": "Invalid refresh token: " + str(e)},
