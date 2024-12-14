@@ -160,7 +160,6 @@ SQL_QUERIES = {
                 n2.id as id
             FROM neighborhood n2
             JOIN home_datapoint hd ON n2.id = hd.neighborhood_id
-            WHERE (%(zip_code)s IS NULL OR zip_code = %(zip_code)s)
             GROUP BY n2.id
             HAVING
                 CAST(
@@ -170,33 +169,39 @@ SQL_QUERIES = {
                 ) BETWEEN COALESCE(%(min_price)s, 0) AND COALESCE(%(max_price)s, 100000000)
         ),
         city_filtered AS (
-            SELECT id, county, state_id
+            SELECT id, name, county, state_id
             FROM city
-            WHERE lat BETWEEN COALESCE(%(min_latitude)s,-90) AND COALESCE(%(max_latitude)s,90)
-                AND lng BETWEEN COALESCE(%(min_longitude)s,-180) AND COALESCE(%(max_longitude)s,180)
+            WHERE lat BETWEEN COALESCE(%(min_latitude)s, -90) AND COALESCE(%(max_latitude)s, 90)
+                AND lng BETWEEN COALESCE(%(min_longitude)s, -180) AND COALESCE(%(max_longitude)s, 180)
                 AND crime_rate < COALESCE(%(max_crime)s, 100000)
                 AND density BETWEEN COALESCE(%(min_pop_density)s, 0) AND COALESCE(%(max_pop_density)s, 100000)
                 AND population BETWEEN COALESCE(%(min_pop)s, 0) AND COALESCE(%(max_pop)s, 100000000)
-                AND (%(city)s IS NULL OR name = %(city)s)
+                AND ((%(city)s IS NULL OR %(city)s = '' OR name = %(city)s))
         ),
         state_filtered AS (
             SELECT s.state_id, COUNT(*)
             FROM state s
             JOIN natural_disaster
             ON s.state_id = natural_disaster.state_id
-            WHERE date>'2000-01-01' AND (%(state)s IS NULL OR s.state_id=%(state)s)
+            WHERE date > '2000-01-01' AND ((%(state)s IS NULL OR %(state)s = '' OR s.state_id = %(state)s))
             GROUP BY s.state_id
-            HAVING COUNT(*)>COALESCE(%(max_natural_disaster_count)s, 0)
+            HAVING COUNT(*) < COALESCE(%(max_natural_disaster_count)s, 0)
         ),
         county_filtered AS (
             SELECT county, state_id, AVG(total_cost) as total_cost
             FROM cost_of_living_by_county
-            WHERE (%(county)s IS NULL OR county = %(county)s)
+            WHERE (%(county)s IS NULL OR %(county)s = '' OR county = %(county)s)
             GROUP BY county, state_id
             HAVING AVG(total_cost) BETWEEN COALESCE(%(min_cost_of_living)s, 0) AND COALESCE(%(max_cost_of_living)s, 10000000)
-        )
+        ),
+        zip_code_filtered AS (
+            SELECT zip_code, city_name, state_id
+            FROM city_to_zip_code
+            WHERE (%(zip_code)s IS NULL OR %(zip_code)s = 0 OR zip_code = %(zip_code)s))
 
-        SELECT nf.id, nf.neighborhood_name, nf.weighted_avg_price, nf.zip_code, cf.id, cf.state_id, cf.county FROM neighborhood n
+        SELECT DISTINCT ON (nf.neighborhood_name, cf.name, cf.state_id)
+        nf.id, nf.neighborhood_name, nf.weighted_avg_price, zf.zip_code, cf.id, cf.state_id, cf.county
+        FROM neighborhood n
         JOIN neighborhood_filtered nf
             ON n.id = nf.id
         JOIN city_filtered cf
@@ -204,7 +209,12 @@ SQL_QUERIES = {
         JOIN state_filtered sf
             ON n.state_id = sf.state_id
         JOIN county_filtered col_f
-            ON cf.county = col_f.county AND cf.state_id=col_f.state_id
+            ON cf.county = col_f.county AND cf.state_id = col_f.state_id
+        JOIN zip_code_filtered zf
+            ON zf.state_id = cf.state_id AND zf.city_name = cf.name
+
+        LIMIT COALESCE(%(num)s, 100)
+
     """,
     "count_natural_disasters": """
         SELECT

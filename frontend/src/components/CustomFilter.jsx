@@ -33,7 +33,7 @@ function CustomFilter() {
   const [minLongitude, setMinLongitude] = useState(-90);
   const [maxLongitude, setMaxLongitude] = useState(90);
   const [city, setCity] = useState("");
-  const [zipCode, setZipCode] = useState("");
+  const [zipCode, setZipCode] = useState(0);
   const [state, setState] = useState("");
   const [county, setCounty] = useState("");
 
@@ -278,7 +278,7 @@ function CustomFilter() {
               placeholder="Enter Zip Code"
               className="border border-gray-300 rounded px-3 py-2 w-full"
               value={zipCode}
-              onChange={(e) => setZipCode(e.target.value)}
+              onChange={(e) => setZipCode(e.target.value) || '0'}
             />
           </div>
 
@@ -301,7 +301,7 @@ function CustomFilter() {
               type="text"
               placeholder="Enter State"
               className="border border-gray-300 rounded px-3 py-2 w-full"
-              value={city}
+              value={state}
               onChange={(e) => setState(e.target.value)}
             />
           </div>
@@ -334,7 +334,7 @@ function CustomFilter() {
                         "County": county,
                     };
                 console.log(searchParams);
-                api.post("/api/neighborhoods/preference-ranking/", searchParams)
+                api.post("/api/neighborhoods/filter/", searchParams)
                     .then((response) => {
                         console.log("Search results:", response.data);
                     })
