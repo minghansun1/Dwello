@@ -22,8 +22,16 @@ from rest_framework.exceptions import ValidationError
 from .models import City, State, Neighborhood, ZipCountyCode
 from django.shortcuts import get_object_or_404
 from .utils import execute_query
+from .decorators import cache_response
+from django.conf import settings
+from .cache import RedisCache
 
 User = get_user_model()
+redis_cache = RedisCache()
+
+def invalidate_location_cache(location_type: str):
+    """Invalidate cache for specific location type"""
+    redis_cache.delete(f'top_liked:{location_type}')
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -37,9 +45,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """
-        Override to allow registration, login, and token refresh without authentication
+        Override to allow registration and login without authentication
         """
-        if self.action in ['register', 'login', 'refresh_token']:
+        if self.action in ['register', 'login']:
             return [AllowAny()]
         return super().get_permissions()
     
@@ -290,6 +298,9 @@ class UserViewSet(viewsets.ModelViewSet):
             })
             message = "liked"
 
+        # Invalidate related caches
+        invalidate_location_cache(location_type)
+        
         return Response({
             "status": "success",
             "message": f"Successfully {message} {location_type} {location_id}"
@@ -298,6 +309,10 @@ class UserViewSet(viewsets.ModelViewSet):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@cache_response(
+    timeout=settings.CACHE_TIMEOUT['PRICE_RANKING'],
+    key_prefix='neighborhood_price_ranking'
+)
 def neighborhood_price_ranking(request):
     results = execute_query("neighborhood_price_ranking")
     return Response(results)
@@ -305,6 +320,10 @@ def neighborhood_price_ranking(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@cache_response(
+    timeout=settings.CACHE_TIMEOUT['PRICE_RANKING'],
+    key_prefix='city_price_ranking'
+)
 def city_price_ranking(request):
     results = execute_query("city_price_ranking")
     return Response(results)
@@ -374,6 +393,10 @@ def filter_neighborhoods(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@cache_response(
+    timeout=settings.CACHE_TIMEOUT['NATURAL_DISASTERS'],
+    key_prefix='natural_disasters'
+)
 def count_natural_disasters(request):
     results = execute_query("count_natural_disasters")
     return Response(results)
@@ -393,6 +416,10 @@ def find_nearest_cities(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@cache_response(
+    timeout=settings.CACHE_TIMEOUT['TOP_LIKED'],
+    key_prefix='top_liked'
+)
 def top_liked_locations(request):
     """
     Get the most liked locations of a specific type.

@@ -139,3 +139,13 @@ SIMPLE_JWT = {
 
     'JTI_CLAIM': 'jti',
 }
+
+REDIS_HOST = 'localhost'
+REDIS_PORT = 6379
+
+# Cache timeout constants
+CACHE_TIMEOUT = {
+    'PRICE_RANKING': 60 * 60 * 24,        # 24 hours
+    'NATURAL_DISASTERS': 60 * 60 * 24 * 7, # 7 days
+    'TOP_LIKED': 60 * 15,                 # 15 minutes
+}
