@@ -163,6 +163,7 @@ SQL_QUERIES = {
         county_filtered AS (
             SELECT county, state_id, AVG(total_cost) as total_cost
             FROM cost_of_living_by_county
+            WHERE (%(county)s IS NULL OR county = %(county)s)
             GROUP BY county, state_id
             HAVING AVG(total_cost) BETWEEN COALESCE(%(min_cost_of_living)s, 0) AND COALESCE(%(max_cost_of_living)s, 10000000)
         )
