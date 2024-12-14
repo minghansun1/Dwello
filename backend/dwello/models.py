@@ -188,10 +188,6 @@ class UserLikesCity(models.Model):
         managed = False
         db_table = "user_likes_city"
 
-    class Meta:
-        managed = False
-        db_table = "user_likes_city"
-
 
 class UserLikesNeighborhood(models.Model):
     user = models.OneToOneField(
