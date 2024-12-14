@@ -39,7 +39,7 @@ SQL_QUERIES = {
         ORDER BY weighted_avg_price DESC
     """,
     "preference_based_ranking": """
-        neighborhood_score AS (
+        WITH neighborhood_score AS (
             SELECT n2.id as id, n2.city_id, n2.state_id, n2.name AS neighborhood_name,
                 ABS(CAST(SUM(CAST(hd.median_sale_price_adjusted AS DECIMAL(38, 2)) * hd.num_homes_sold) /
                         NULLIF(SUM(hd.num_homes_sold), 0) AS INT)-%(preferred_median_home_price)s)*%(importance_median_home_price)s AS neighborhood_price_score

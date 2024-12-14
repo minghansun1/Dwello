@@ -312,18 +312,30 @@ def preference_based_ranking(request):
     params = {
         "preferred_cost_of_living": request.data.get("preferred_cost_of_living"),
         "preferred_median_home_price": request.data.get("preferred_median_home_price"),
-        "preferred_median_income": request.data.get("preferred_median_income"),
+        "preferred_median_family_income": request.data.get("preferred_median_income"),
         "preferred_crime_rate": request.data.get("preferred_crime_rate"),
-        "preferred_industry_income": request.data.get("preferred_industry_income"),
-        "importance_cost_of_living": request.data.get("importance_cost_of_living", 1),
-        "importance_median_home_price": request.data.get(
-            "importance_median_home_price", 1
-        ),
-        "importance_median_income": request.data.get("importance_median_income", 1),
-        "importance_crime_rate": request.data.get("importance_crime_rate", 1),
-        "importance_industry_income": request.data.get("importance_industry_income", 1),
-        "num": request.data.get("num", 10),
+        "industry_name": request.data.get("industry_name"),
+        "preferred_industry_salary": request.data.get("preferred_industry_salary"),
+        "preferred_industry_jobs_1000": request.data.get("preferred_industry_jobs_1000"),
+        "preferred_population_density": request.data.get("preferred_population_density"),
+        "preferred_population": request.data.get("preferred_population"),
+        "preferred_latitude": request.data.get("preferred_latitude"),
+        "preferred_longitude": request.data.get("preferred_longitude"),
+        "preferred_natural_disaster_count": request.data.get("preferred_natural_disaster_count"),
+
+        "importance_cost_of_living": request.data.get("importance_cost_of_living", 0),
+        "importance_median_home_price": request.data.get("importance_median_home_price", 0),
+        "importance_median_family_income": request.data.get("importance_median_income", 0),
+        "importance_crime_rate": request.data.get("importance_crime_rate", 0),
+        "importance_industry_salary": request.data.get("importance_industry_salary", 0),
+        "importance_industry_jobs_1000": request.data.get("importance_industry_jobs_1000", 0),
+        "importance_population_density": request.data.get("importance_population_density", 0),
+        "importance_population": request.data.get("importance_population", 0),
+        "importance_location": request.data.get("importance_location", 0),
+        "importance_natural_disaster_count": request.data.get("importance_natural_disaster_count", 0),
+        "num": request.data.get("num", 50),
     }
+    print(params)
     results = execute_query("preference_based_ranking", params)
     return Response(results)
 
