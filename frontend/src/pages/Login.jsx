@@ -1,10 +1,13 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import api from "../api";
+import { TOKEN } from "../constants";
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate()
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -14,6 +17,8 @@ const Login = () => {
     api.post("/api/auth/login/", { "username": username, "password": password })
         .then((response) => {
             console.log("Login successful:", response.data);
+            localStorage.setItem(TOKEN, response.data.token);
+            navigate("/profile")
         })
         .catch((error) => {
             console.error("There was an error logging in!", error);
