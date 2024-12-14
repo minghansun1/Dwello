@@ -1,10 +1,37 @@
 # Dictionary of SQL queries used by views.py
 SQL_QUERIES = {
     "top_liked_neighborhoods": """
-        SELECT n.name AS neighborhood_name, COUNT(uln.user_id) AS favorite_count
+        SELECT n.name AS location_name, COUNT(uln.user_id) AS favorite_count
         FROM Neighborhood n
         JOIN user_likes_neighborhood uln ON n.id = uln.neighborhood_id
-        GROUP BY n.id
+        GROUP BY n.id, n.name
+        ORDER BY favorite_count DESC
+        LIMIT %(num)s
+    """,
+    "top_liked_cities": """
+        SELECT c.name AS location_name, COUNT(ulc.user_id) AS favorite_count
+        FROM city c
+        JOIN user_likes_city ulc ON c.id = ulc.city_id
+        GROUP BY c.id, c.name
+        ORDER BY favorite_count DESC
+        LIMIT %(num)s
+    """,
+    "top_liked_states": """
+        SELECT s.name AS location_name, COUNT(uls.user_id) AS favorite_count
+        FROM state s
+        JOIN user_likes_state uls ON s.state_id = uls.state_id
+        GROUP BY s.state_id, s.name
+        ORDER BY favorite_count DESC
+        LIMIT %(num)s
+    """,
+    "top_liked_zipcodes": """
+        SELECT zcc.code AS zip_code, 
+               zcc.city AS city_name,
+               zcc.county AS county_name,
+               COUNT(ulz.user_id) AS favorite_count
+        FROM zip_county_code zcc
+        JOIN user_likes_zipcode ulz ON zcc.code = ulz.zip_code
+        GROUP BY zcc.code, zcc.city, zcc.county, zcc.state_id
         ORDER BY favorite_count DESC
         LIMIT %(num)s
     """,
@@ -77,8 +104,7 @@ SQL_QUERIES = {
         ORDER BY total_score
         LIMIT %(num)s
     """,
-
-    'high_cost_cities_by_state': """
+    "high_cost_cities_by_state": """
         SELECT
             c.name AS city_name,
             s.name AS state_name,
@@ -104,8 +130,7 @@ SQL_QUERIES = {
         FROM auth_user u
         WHERE u.id = %(user_id)s
     """,
-
-        'filter_neighborhoods': """
+    "filter_neighborhoods": """
         WITH neighborhood_filtered AS (
             SELECT n2.name AS neighborhood_name,
                 CAST(SUM(CAST(hd.median_sale_price_adjusted AS DECIMAL(38, 2)) * hd.num_homes_sold) /
@@ -158,9 +183,7 @@ SQL_QUERIES = {
         JOIN county_filtered col_f
             ON cf.county = col_f.county AND cf.state_id=col_f.state_id
     """,
-
-
-    'get_user_favorites': """
+    "get_user_favorites": """
         SELECT
             u.id AS user_id,
             c.name AS favorite_city,
@@ -224,5 +247,30 @@ SQL_QUERIES = {
         ORDER BY
             distance_km ASC
         LIMIT %(num)s;
+    """,
+    "check_zipcode_exists": """
+        SELECT EXISTS(
+            SELECT 1 FROM zip_county_code 
+            WHERE code = %(zip_code)s
+        )
+    """,
+    
+    "like_location": """
+        INSERT INTO %(table_name)s (user_id, %(id_column)s)
+        VALUES (%(user_id)s, %(location_id)s)
+    """,
+    
+    "unlike_location": """
+        DELETE FROM %(table_name)s
+        WHERE user_id = %(user_id)s
+        AND %(id_column)s = %(location_id)s
+    """,
+    "check_if_liked": """
+        SELECT EXISTS (
+            SELECT 1 
+            FROM %(table_name)s
+            WHERE user_id = %(user_id)s
+            AND %(id_column)s = %(location_id)s
+        )
     """,
 }
