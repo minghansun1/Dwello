@@ -7,11 +7,12 @@ const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 function Map() {
   const mapRef = useRef(null); // Reference to the map container
   const mapInstanceRef = useRef(null); // Reference to the map instance
-  const mapType = "State"; // "State", "County", "Zip Code", or "City"
+  const [mapType, setMapType] = useState("State"); // "State", "County", "Zip Code", or "City"
   const [mapHeight, setMapHeight] = useState("100vh");
   let lastInteractedFeatureIds = [];
   let lastClickedFeatureIds = [];
   let infoWindow;
+  const [selectedOption, setSelectedOption] = useState("option1");
 
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -195,12 +196,60 @@ function Map() {
   if (!isLoaded) return <div>Loading...</div>;
 
   return (
-    <div>
+    <div className="relative" style={{ height: mapHeight }}>
       <div
         id="map"
         ref={mapRef}
-        style={{ width: "100%", height: mapHeight }}
+        style={{ width: "100%", height: "100%" }}
       ></div>
+
+      {/* Radio Buttons Overlay */}
+      <div className="absolute bottom-4 left-4 bg-white p-4 rounded-lg shadow-lg">
+        <label className="block mb-2">
+          <input
+            type="radio"
+            name="mapOption"
+            value="option1"
+            checked={selectedOption === "option1"}
+            onChange={(e) => { setSelectedOption(e.target.value); setMapType("State"); }}
+            className="mr-2"
+          />
+          States
+        </label>
+        <label className="block mb-2">
+          <input
+            type="radio"
+            name="mapOption"
+            value="option2"
+            checked={selectedOption === "option2"}
+            onChange={(e) => { setSelectedOption(e.target.value); setMapType("County"); }}
+            className="mr-2"
+          />
+          Counties
+        </label>
+        <label className="block mb-2">
+          <input
+            type="radio"
+            name="mapOption"
+            value="option3"
+            checked={selectedOption === "option3"}
+            onChange={(e) => { setSelectedOption(e.target.value); setMapType("Zip Code"); }}
+            className="mr-2"
+          />
+          Zip Codes
+        </label>
+        <label className="block">
+          <input
+            type="radio"
+            name="mapOption"
+            value="option4"
+            checked={selectedOption === "option4"}
+            onChange={(e) => { setSelectedOption(e.target.value); setMapType("City"); }}
+            className="mr-2"
+          />
+          Cities
+        </label>
+      </div>
     </div>
   );
 }

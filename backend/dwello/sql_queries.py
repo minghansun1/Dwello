@@ -28,15 +28,6 @@ SQL_QUERIES = {
         ORDER BY weighted_avg_price DESC
     """,
     "preference_based_ranking": """
-        WITH avg_cost_of_living AS (
-            SELECT
-                county,
-                state_id,
-                AVG(median_family_income) as median_income,
-                AVG(total_cost) as cost_of_living
-            FROM cost_of_living_by_county
-            GROUP BY county, state_id
-        ),
         neighborhood_score AS (
             SELECT n2.id as id, n2.city_id, n2.state_id, n2.name AS neighborhood_name,
                 ABS(CAST(SUM(CAST(hd.median_sale_price_adjusted AS DECIMAL(38, 2)) * hd.num_homes_sold) /
