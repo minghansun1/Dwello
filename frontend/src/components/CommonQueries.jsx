@@ -2,9 +2,13 @@ import Navbar from "../components/Navbar"
 import { useNavigate } from "react-router-dom"
 import api from "../api"
 import { jobs } from "../constants"
+import { useState } from "react"
 
 function CommonQueries(){
-    const navigate = useNavigate()
+    const navigate = useNavigate();
+    const [latitude, setLatitude] = useState("");
+    const [longitude, setLongitude] = useState("");
+
 
     return <div>
         <div>
@@ -85,12 +89,6 @@ function CommonQueries(){
                         }}
                     >
                         Natural Disasters Per State
-                    </button>
-                    <button
-                        className="bg-blue-500 text-white font-medium py-3 rounded shadow hover:bg-blue-600 focus:outline-none"
-                        onClick={() => handleButtonClick("Option 5")}
-                    >
-                        Nearest City (Requires input)
                     </button>
                     <button
                         className="bg-blue-500 text-white font-medium py-3 rounded shadow hover:bg-blue-600 focus:outline-none"
@@ -208,6 +206,48 @@ function CommonQueries(){
                         }}
                     >
                         Random Search Parameters
+                    </button>
+                </div>
+                <div className="p-4 border rounded shadow-md bg-white mt-8">
+                    <div className="mb-4">
+                        <label className="block text-gray-700 font-medium mb-2">Latitude:</label>
+                        <input
+                            type="text"
+                            value={latitude}
+                            onChange={(e) => setLatitude(e.target.value)}
+                            className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter latitude"
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label className="block text-gray-700 font-medium mb-2">Longitude:</label>
+                        <input
+                            type="text"
+                            value={longitude}
+                            onChange={(e) => setLongitude(e.target.value)}
+                            className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter longitude"
+                        />
+                    </div>
+                    <button
+                        className="bg-blue-500 text-white font-medium py-3 rounded shadow hover:bg-blue-600 focus:outline-none w-full"
+                        onClick={
+                            () => {
+                                api.post(`/api/cities/nearest/?latitude=${latitude}&longitude=${longitude}`)
+                                    .then((response) => {
+                                        console.log("Search results:", response.data);
+                                        const responseData = response.data;
+                                        console.log(responseData);
+                                        navigate("/list", { state: { data: responseData } });
+                                    })
+                                    .catch((error) => {
+                                        console.error("There was an error searching!", error);
+                                        alert("Search failed. Please try again.");
+                                    });
+                            }
+                        }
+                    >
+                        Closest Cities
                     </button>
                 </div>
             </div>

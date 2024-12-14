@@ -96,9 +96,9 @@ function Map() {
           if (stateData) {
             content = `
               <span style="font-size:small">
-                State: ${currState.displayName}<br/>
-                Average Crime Rate: ${stateData.average_crime_rate}<br/>
-                Average Income: ${stateData.average_median_family_income}<br/>
+                State: ${currState.displayName ?? "No data available"}<br/>
+                Average Crime Rate: ${stateData["Average Crime Rate"] ?? "No data available"}<br/>
+                Average Income: ${stateData["Average Median Family Income"] ?? "No data available"}<br/>
               </span>
             `;
           } else {
@@ -112,7 +112,7 @@ function Map() {
       case "County":
         try {
           console.log(currPlace.displayName);
-          const response = await api.get(`/api/counties/snapshot/?county=${currPlace.displayName.replace(/ County$/, '')}`);
+          const response = await api.get(`/api/counties/snapshot/?county=${currPlace.displayName.replace(/ County$/, '')}&state=${currState.displayName}`);
           const countyData = response.data[0];
           console.log("County Data:", countyData);
           
@@ -121,9 +121,9 @@ function Map() {
               <span style="font-size:small">
                 County: ${currPlace.displayName}<br/>
                 State: ${currState.displayName}<br/>
-                Food Cost: ${countyData.food_cost}<br/>
-                Housing Cost: ${countyData.housing_cost}<br/>
-                Healthcare Cost: ${countyData.healthcare_cost}<br/>
+                Food Cost: ${countyData["Food Cost"] ?? "No data available"}<br/>
+                Housing Cost: ${countyData["Housing Cost"] ?? "No data available"}<br/>
+                Healthcare Cost: ${countyData["Healthcare Cost"] ?? "No data available"}<br/>
               </span>
             `;
           } else {
@@ -136,9 +136,10 @@ function Map() {
         break;
       case "Zip Code":
         try{
-          console.log(currPlace);
-          response = await api.get(`/api/zipcodes/snapshot/?zipcode=${currPlace.displayName}`);
-          zipCodeData = response.data[0];
+          console.log(currPlace.displayName);
+          const response = await api.get(`/api/zipcodes/snapshot/?zipcode=${currPlace.displayName}`);
+          console.log(response);
+          const zipCodeData = response.data;
           console.log("Zip Code Data:", zipCodeData);
             
           if (zipCodeData) {
@@ -146,21 +147,22 @@ function Map() {
             <span style="font-size:small">
               Zip Code: ${currPlace.displayName}<br/>
               State: ${currState.displayName}<br/>
-              Average Housing Price: ${zipCodeData.avg_housing_cost}<br/>
+              Average Housing Price: ${zipCodeData["Avg Housing Cost"] ?? "No data available"}<br/>
             </span>
           `;
           } else {
             content = `<span style="font-size:small">No data available for ${currPlace.displayName}</span>`;
           }
         } catch (error) {
+          console.error("Error fetching zip code data:", error);
           content = `<span style="font-size:small">Error fetching zip code data</span>`;
         }
         break;
       case "City":
         try{
-          console.log(currPlace);
-          response = await api.get(`/api/cities/snapshot/?city=${currPlace.displayName}`);
-          cityData = response.data[0];
+          console.log(currPlace.displayName);
+          const response = await api.get(`/api/cities/snapshot/?city=${currPlace.displayName}&state=${currState.displayName}`);
+          const cityData = response.data[0];
           console.log("City Data:", cityData);
             
           if (cityData) {
@@ -168,6 +170,9 @@ function Map() {
             <span style="font-size:small">
               City: ${currPlace.displayName}<br/>
               State: ${currState.displayName}<br/>
+              Latitude: ${cityData["Lat"] ?? "No data available"}<br/>
+              Longitude: ${cityData["Lng"] ?? "No data available"}<br/>
+              Population: ${cityData["Population"] ?? "No data available"}<br/>
             </span>
           `;
           } else {

@@ -536,16 +536,16 @@ def top_liked_locations(request):
 def basic_city_snapshot(request):
     """Get basic information about a city"""
     city_name = request.GET.get("city")
-    state_id = request.GET.get("state_id")
+    state = request.GET.get("state")
 
-    if not city_name or not state_id:
+    if not city_name or not state:
         return Response(
             {"error": "Both city name and state_id are required"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     results = execute_query(
-        "basic_city_snapshot", {"city_name": city_name, "state_id": state_id}
+        "basic_city_snapshot", {"city_name": city_name, "state": state}
     )
     return Response(results)
 
@@ -555,9 +555,9 @@ def basic_city_snapshot(request):
 def basic_county_snapshot(request):
     """Get basic information about a county"""
     county_name = request.GET.get("county")
-    state_id = request.GET.get("state_id")
+    state = request.GET.get("state")
 
-    if not all([county_name, state_id]):
+    if not all([county_name, state]):
         return Response(
             {"error": "County name, state_id, and city name are all required"},
             status=status.HTTP_400_BAD_REQUEST,
@@ -565,7 +565,7 @@ def basic_county_snapshot(request):
 
     results = execute_query(
         "basic_county_snapshot",
-        {"county_name": county_name, "state_id": state_id},
+        {"county_name": county_name, "state": state},
     )
     return Response(results)
 
@@ -589,8 +589,8 @@ def basic_state_snapshot(request):
 def basic_zipcode_snapshot(request):
     """Get basic information about a zipcode"""
     try:
-        zip_code = int(request.GET.get("zipcode", 0))
-        if not zip_code:
+        zipcode = int(request.GET.get("zipcode", None))
+        if not zipcode:
             return Response(
                 {"error": "Zipcode is required"}, status=status.HTTP_400_BAD_REQUEST
             )
@@ -598,6 +598,10 @@ def basic_zipcode_snapshot(request):
         return Response(
             {"error": "Invalid zipcode format"}, status=status.HTTP_400_BAD_REQUEST
         )
-
-    results = execute_query("basic_zipcode_snapshot", {"zip_code": zip_code})
+    print(zipcode)
+    results = execute_query("basic_zipcode_snapshot", {"zipcode": zipcode})
+    for result in results:
+        if "Avg Housing Cost" in result:
+            result["Avg Housing Cost"] = int(result["Avg Housing Cost"])
+    print(Response(results).data)
     return Response(results)

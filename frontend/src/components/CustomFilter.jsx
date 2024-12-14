@@ -1,6 +1,7 @@
 import { useState } from "react";
 import api from "../api";
 import { jobs } from "../constants";
+import { useNavigate } from "react-router-dom";
 
 function CustomFilter() {
   const rangeBoxes = [
@@ -39,6 +40,7 @@ function CustomFilter() {
   const [state, setState] = useState("");
   const [county, setCounty] = useState("");
   const [industry, setIndustry] = useState("");
+  const navigate = useNavigate();
 
   return (
     <div>

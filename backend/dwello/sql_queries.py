@@ -312,16 +312,18 @@ SQL_QUERIES = {
     """,
     #########CITY DETAIL########################################
     "basic_city_snapshot": """
-        SELECT name, state_id, ranking,lat, lng, crime_rate, density, population
-        FROM city
-        WHERE name = %(city_name)s
-        AND state_id = %(state_id)s
+        SELECT c.name, s.state_id, s.name, ranking,lat, lng, crime_rate, density, population
+        FROM city c
+        JOIN state s ON c.state_id = s.state_id
+        WHERE c.name = %(city_name)s
+        AND s.name = %(state)s
     """,
     #########COUNTY DETAIL########################################
     "basic_county_snapshot": """
         SELECT 
             zc.county,
             zc.state_id,
+            s.name AS state,
             zc.city,
             col.housing_cost, 
             col.food_cost,
@@ -330,9 +332,11 @@ SQL_QUERIES = {
             cost_of_living_by_county col
         JOIN 
             zip_county_code zc ON col.county = zc.county
+        JOIN
+            state s ON zc.state_id = s.state_id
         WHERE 
             zc.county = %(county_name)s
-            AND zc.state_id = %(state_id)s
+            AND s.name = %(state)s
         LIMIT 1
     """,
     "basic_county_info": """
@@ -349,7 +353,7 @@ SQL_QUERIES = {
             state ON cost_of_living_by_county.state_id = state.state_id
         WHERE 
             cost_of_living_by_county.county = %(county_name)s
-            AND state.state_id = %(state_id)s
+            AND state.name = %(state)s
         LIMIT 1
     """,
     #########STATE DETAIL########################################
@@ -415,7 +419,7 @@ SQL_QUERIES = {
         JOIN 
             zip_county_code zc ON col.county = zc.county
         WHERE 
-            zc.code = %(zip_code)s
+            zc.code = %(zipcode)s
         GROUP BY 
             zc.code;
     """,
