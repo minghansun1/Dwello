@@ -16,4 +16,8 @@ urlpatterns = [
     path('states/natural-disasters/', views.count_natural_disasters, name='natural-disasters'),
     path('cities/nearest/', views.find_nearest_cities, name='nearest-cities'),
     path('top-liked-locations/', views.top_liked_locations, name='top-liked-locations'),
+    path('cities/snapshot/', views.basic_city_snapshot, name='city-snapshot'),
+    path('counties/snapshot/', views.basic_county_snapshot, name='county-snapshot'),
+    path('states/snapshot/', views.basic_state_snapshot, name='state-snapshot'),
+    path('zipcodes/snapshot/', views.basic_zipcode_snapshot, name='zipcode-snapshot'),
 ]
