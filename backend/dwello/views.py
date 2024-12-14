@@ -399,12 +399,7 @@ def filter_neighborhoods(request):
 
 
 @api_view(["GET"])
-def get_user_favorites(request, user_id):
-    results = execute_query("get_user_favorites", {"target_user_id": user_id})
-    return Response(results)
-
-
-@api_view(["GET"])
+@permission_classes([AllowAny])
 def count_natural_disasters(request):
     results = execute_query("count_natural_disasters")
     return Response(results)

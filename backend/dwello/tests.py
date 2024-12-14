@@ -316,26 +316,6 @@ class DwelloAPITests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
 
-    def test_get_user_favorites(self):
-        """Test getting user favorites"""
-        # First like some locations
-        locations = [
-            {'type': 'neighborhood', 'id': self.neighborhood.id},
-            {'type': 'city', 'id': self.city.id},
-            {'type': 'state', 'id': self.state.state_id},
-            {'type': 'zipcode', 'id': self.zipcode.code}
-        ]
-        
-        for loc in locations:
-            self.client.post(reverse('user-like-location'), loc)
-            
-        response = self.client.get(
-            reverse('get-user-favorites', kwargs={'user_id': self.user.id})
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('favorite_city', response.data[0])
-        self.assertIn('favorite_neighborhood', response.data[0])
-
     def test_count_natural_disasters(self):
         """Test natural disaster counting endpoint"""
         response = self.client.get(reverse('count-natural-disasters'))
