@@ -406,6 +406,7 @@ def count_natural_disasters(request):
 
 
 @api_view(["POST"])
+@permission_classes([AllowAny])
 def find_nearest_cities(request):
     params = {
         "target_latitude": request.GET.get("latitude"),
