@@ -60,7 +60,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "location_id_column": "city_id"
         })
         return LocationSerializer(results, many=True).data
-
     def get_liked_states(self, obj):
         results = execute_query("user_liked_locations", {
             "user_id": obj.user.id,
@@ -72,7 +71,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return LocationSerializer(results, many=True).data
 
     def get_liked_zipcodes(self, obj):
-        results = execute_query("user_liked_zipcodes", {"user_id": obj.user.id})
+        results = execute_query("user_liked_zipcodes", {
+            "user_id": obj.user.id,
+            "table_name": "zip_county_code",
+            "likes_table": "user_likes_zipcode",
+            "id_column": "code",
+            "location_id_column": "zip_code"
+        })
         return ZipcodeSerializer(results, many=True).data
 
 

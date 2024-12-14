@@ -144,9 +144,13 @@ SQL_QUERIES = {
             clb.total_cost DESC;
     """,
     "get_user_income_and_city": """
-        SELECT income, city_id
-        FROM user_profile u
-        WHERE u.user_id = %(user_id)s
+        SELECT up.income, 
+               c.id as city_id,
+               c.name as city_name,
+               c.state_id
+        FROM user_profile up
+        LEFT JOIN city c ON up.city_id = c.id
+        WHERE up.user_id = %(user_id)s
     """,
     "filter_neighborhoods": """
         WITH neighborhood_filtered AS (
