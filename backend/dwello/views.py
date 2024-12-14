@@ -22,8 +22,16 @@ from rest_framework.exceptions import ValidationError
 from .models import City, State, Neighborhood, ZipCountyCode
 from django.shortcuts import get_object_or_404
 from .utils import execute_query
+from .decorators import cache_response
+from django.conf import settings
+from .cache import RedisCache
 
 User = get_user_model()
+redis_cache = RedisCache()
+
+def invalidate_location_cache(location_type: str):
+    """Invalidate cache for specific location type"""
+    redis_cache.delete(f'top_liked:{location_type}')
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -37,9 +45,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """
-        Override to allow registration, login, and token refresh without authentication
+        Override to allow registration and login without authentication
         """
-        if self.action in ['register', 'login', 'refresh_token']:
+        if self.action in ['register', 'login']:
             return [AllowAny()]
         return super().get_permissions()
     
@@ -189,9 +197,7 @@ class UserViewSet(viewsets.ModelViewSet):
             # Blacklist refresh token
             try:
                 token = RefreshToken(refresh_token)
-                print("REFRESH TOKEN: ", token)
                 token.blacklist()
-                print("REFRESH TOKEN BLACKLISTED")
             except Exception as e:
                 return Response(
                     {"error": "Invalid refresh token: " + str(e)},
@@ -290,6 +296,9 @@ class UserViewSet(viewsets.ModelViewSet):
             })
             message = "liked"
 
+        # Invalidate related caches
+        invalidate_location_cache(location_type)
+        
         return Response({
             "status": "success",
             "message": f"Successfully {message} {location_type} {location_id}"
@@ -298,6 +307,10 @@ class UserViewSet(viewsets.ModelViewSet):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@cache_response(
+    timeout=settings.CACHE_TIMEOUT['PRICE_RANKING'],
+    key_prefix='neighborhood_price_ranking'
+)
 def neighborhood_price_ranking(request):
     results = execute_query("neighborhood_price_ranking")
     return Response(results)
@@ -305,6 +318,10 @@ def neighborhood_price_ranking(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@cache_response(
+    timeout=settings.CACHE_TIMEOUT['PRICE_RANKING'],
+    key_prefix='city_price_ranking'
+)
 def city_price_ranking(request):
     results = execute_query("city_price_ranking")
     return Response(results)
@@ -350,32 +367,6 @@ def high_cost_cities_by_state(request):
     results = execute_query("high_cost_cities_by_state")
     return Response(results)
 
-
-@api_view(["GET"])
-def get_user_preferences(request, user_id):
-    try:
-        user_profile = UserProfile.objects.select_related("user", "preferred_city").get(
-            user_id=user_id
-        )
-
-        return Response(
-            {
-                "username": user_profile.user.username,
-                "income": user_profile.income,
-                "preferred_city": (
-                    {
-                        "id": user_profile.preferred_city.id,
-                        "name": user_profile.preferred_city.name,
-                    }
-                    if user_profile.preferred_city
-                    else None
-                ),
-            }
-        )
-    except UserProfile.DoesNotExist:
-        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-
-
 @api_view(["POST"])
 def filter_neighborhoods(request):
     params = {
@@ -405,18 +396,18 @@ def filter_neighborhoods(request):
 
 
 @api_view(["GET"])
-def get_user_favorites(request, user_id):
-    results = execute_query("get_user_favorites", {"target_user_id": user_id})
-    return Response(results)
-
-
-@api_view(["GET"])
+@permission_classes([AllowAny])
+@cache_response(
+    timeout=settings.CACHE_TIMEOUT['NATURAL_DISASTERS'],
+    key_prefix='natural_disasters'
+)
 def count_natural_disasters(request):
     results = execute_query("count_natural_disasters")
     return Response(results)
 
 
 @api_view(["POST"])
+@permission_classes([AllowAny])
 def find_nearest_cities(request):
     params = {
         "target_latitude": request.GET.get("latitude"),
@@ -429,6 +420,10 @@ def find_nearest_cities(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@cache_response(
+    timeout=settings.CACHE_TIMEOUT['TOP_LIKED'],
+    key_prefix='top_liked'
+)
 def top_liked_locations(request):
     """
     Get the most liked locations of a specific type.
