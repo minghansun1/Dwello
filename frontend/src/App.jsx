@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound"
 import Login from "./pages/Login"
 import Register from "./pages/Register"
 import Profile from "./pages/Profile"
+import ProtectedRoute from "./components/ProtectedRoute"
 
 function Logout() {
   localStorage.clear()
@@ -27,8 +28,16 @@ function App() {
         <Route path="/notfound" element={<NotFound />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register/>} />
-        <Route path="/logout" element={<Logout />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/logout" element={
+          <ProtectedRoute>
+            <Logout />
+          </ProtectedRoute>
+          } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+          } />
       </Routes>
     </BrowserRouter>
   )

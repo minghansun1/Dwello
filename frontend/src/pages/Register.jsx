@@ -26,7 +26,7 @@ const Register = () => {
 
     console.log("Form Data Submitted:", formData);
 
-    api.post("/api/auth/signup/", formData)
+    api.post("/api/users/register/", formData)
         .then((response) => {
             console.log("Registration successful:", response.data);
             window.location.href = "/login";
@@ -51,17 +51,17 @@ const Register = () => {
                     htmlFor="username"
                     className="block text-sm font-medium text-gray-700"
                     >
-                    Username
+                        Username
                     </label>
                     <input
-                    type="text"
-                    id="name"
-                    name="username"
-                    className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Enter your username"
-                    value={formData.username}
-                    onChange={handleChange}
-                    required
+                        type="text"
+                        id="name"
+                        name="username"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Enter your username"
+                        value={formData.username}
+                        onChange={handleChange}
+                        required
                     />
                 </div>
                 <div>
@@ -69,17 +69,17 @@ const Register = () => {
                     htmlFor="email"
                     className="block text-sm font-medium text-gray-700"
                     >
-                    Email Address
+                        Email Address
                     </label>
                     <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Enter your email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
+                        type="email"
+                        id="email"
+                        name="email"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Enter your email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        required
                     />
                 </div>
                 <div>
@@ -87,17 +87,17 @@ const Register = () => {
                     htmlFor="password"
                     className="block text-sm font-medium text-gray-700"
                     >
-                    Password
+                        Password
                     </label>
                     <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Enter your password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
+                        type="password"
+                        id="password"
+                        name="password"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Enter your password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        required
                     />
                 </div>
                 <div>
@@ -105,17 +105,17 @@ const Register = () => {
                     htmlFor="confirmPassword"
                     className="block text-sm font-medium text-gray-700"
                     >
-                    Confirm Password
+                        Confirm Password
                     </label>
                     <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Confirm your password"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    required
+                        type="password"
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Confirm your password"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        required
                     />
                 </div>
                 <div>
@@ -123,12 +123,12 @@ const Register = () => {
                     type="submit"
                     className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     >
-                    Register
+                        Register
                     </button>
                 </div>
                 </form>
                 <p className="mt-6 text-sm text-gray-600 text-center">
-                Already have an account?{" "}
+                    Already have an account?{" "}
                 <a href="/login" className="text-indigo-500 hover:underline">
                     Login
                 </a>

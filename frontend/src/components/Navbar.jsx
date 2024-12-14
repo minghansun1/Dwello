@@ -1,12 +1,56 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { TOKEN } from "../constants";
+import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
+import {jwtDecode} from "jwt-decode"
+import api from "../api"
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const isLoggedIn = Boolean(localStorage.getItem(TOKEN));
+  const [isAuthenticated, setIsAuthenticated] = useState(null)
 
-  // Close the menu when clicking outside
+    useEffect(() => {
+        auth().catch(() => setIsAuthenticated(false))
+    }, [])
+
+    const refreshToken = async () => {
+        try {
+            const res = await api.post("/api/token/refresh/", {
+                refresh: refreshToken
+            })
+            if (res.status == 200) {
+                localStorage.setItem(ACCESS_TOKEN, res.data.access)
+                setIsAuthenticated(true)
+                console.log("Authenticated")
+            } else {
+                setIsAuthenticated(false)
+                console.log("Not authenticated")
+            }
+        } catch (error) {
+            console.log(error)
+            setIsAuthenticated(false)
+            console.log("Not authenticated")
+        }
+    }
+
+    const auth = async () => {
+        const token = localStorage.getItem(ACCESS_TOKEN)
+        if (!token) {
+            setIsAuthenticated(false)
+            console.log("Not authenticated")
+            return
+        }
+        const decoded = jwtDecode(token)
+        const tokenExpiration = decoded.exp
+        const now = Date.now() / 1000
+
+        if (tokenExpiration < now) {
+            await refreshToken()
+        } else {
+            setIsAuthenticated(true)
+            console.log("Authenticated")
+        }
+    }
+
   const handleOutsideClick = (e) => {
     if (
       !e.target.closest(".hamburger-menu") &&
@@ -59,7 +103,7 @@ const Navbar = () => {
               About
             </Link>
           </li>
-          {isLoggedIn ? (
+          {isAuthenticated ? (
             <>
               <li>
                 <Link to="/profile" className="hover:text-gray-300">
@@ -130,7 +174,7 @@ const Navbar = () => {
             About
           </Link>
         </li>
-        {isLoggedIn ? (
+        {isAuthenticated ? (
           <>
             <li className="p-4 border-b border-gray-700">
               <Link

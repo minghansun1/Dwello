@@ -1,13 +1,25 @@
-import Navbar from "../components/Navbar"
+import React from "react";
+import Navbar from "../components/Navbar";
+import CommonQueries from "../components/CommonQueries";
+import CustomSearch from "../components/CustomSearch";
+import CustomFilter from "../components/CustomFilter";
 
-function Search(){
-    return <div>
-        <div>
-            <Navbar />
-            <h1>Search</h1>
-            <p>Search</p>
+const SearchPage = () => {
+  const handleButtonClick = (buttonText) => {
+    console.log(`Button ${buttonText} clicked!`);
+  };
+
+  return (
+    <div>
+        <Navbar/>
+        <div className="min-h-screen bg-gray-100 p-6">
+            <CommonQueries/>
+            <CustomSearch/>
+            <CustomFilter/>
         </div>
     </div>
-}
+    
+  );
+};
 
-export default Search
+export default SearchPage;

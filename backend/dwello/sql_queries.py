@@ -38,8 +38,10 @@ SQL_QUERIES = {
         ),
         city_score AS(
             SELECT name, id, state_id, county,
-                SQRT(POWER(lat-%(preferred_latitude)s, 2)+POWER(lng-%(preferred_longitude),2)) * %(importance_location)s AS city_location_score,
-                ABS(crime_rate-%(preferred_crime_rate)s) * %(importance_crime_rate)s AS city_crime_rate_score
+                SQRT(POWER(lat-%(preferred_latitude)s, 2)+POWER(lng-%(preferred_longitude)s,2)) * %(importance_location)s AS city_location_score,
+                ABS(crime_rate-%(preferred_crime_rate)s) * %(importance_crime_rate)s AS city_crime_rate_score,
+                ABS(density-%(preferred_population_density)s) * %(importance_population_density)s AS city_population_density_score,
+                ABS(population-%(preferred_population)s) * %(importance_population)s AS city_population_score
             FROM city
         ),
         industry_city_score AS(
