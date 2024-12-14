@@ -41,63 +41,75 @@ SQL_QUERIES = {
     """,
     "preference_based_ranking": """
         WITH neighborhood_score AS (
-            SELECT n2.id as id, n2.city_id, n2.state_id, n2.name AS neighborhood_name,
-            CAST(SUM(CAST(hd.median_sale_price_adjusted AS DECIMAL(38, 2)) * hd.num_homes_sold) /
-                        NULLIF(SUM(hd.num_homes_sold), 0) AS INT) AS median_sale_price_adjusted,
-                ABS(CAST(SUM(CAST(hd.median_sale_price_adjusted AS DECIMAL(38, 2)) * hd.num_homes_sold) /
-                        NULLIF(SUM(hd.num_homes_sold), 0) AS INT)-%(preferred_median_home_price)s)*%(importance_median_home_price)s AS neighborhood_price_score
+            SELECT n2.id AS id, n2.city_id, n2.state_id, n2.name AS neighborhood_name,
+                CAST(SUM(CAST(hd.median_sale_price_adjusted AS NUMERIC(38, 2)) * hd.num_homes_sold) /
+                    NULLIF(SUM(hd.num_homes_sold), 0) AS BIGINT) AS median_sale_price_adjusted,
+                ABS(CAST(SUM(CAST(hd.median_sale_price_adjusted AS NUMERIC(38, 2)) * hd.num_homes_sold) /
+                    NULLIF(SUM(hd.num_homes_sold), 0) AS BIGINT) - %(preferred_median_home_price)s) * %(importance_median_home_price)s AS neighborhood_price_score
             FROM neighborhood n2
             JOIN home_datapoint hd ON n2.id = hd.neighborhood_id
             GROUP BY n2.id
         ),
-        city_score AS(
-            SELECT name as city_name, id, state_id, county,
+        city_score AS (
+            SELECT name AS city_name, id, state_id, county,
                 lat, lng, crime_rate, density, population,
-                SQRT(POWER(lat-%(preferred_latitude)s, 2)+POWER(lng-%(preferred_longitude)s,2)) * %(importance_location)s AS city_location_score,
-                ABS(crime_rate-%(preferred_crime_rate)s) * %(importance_crime_rate)s AS city_crime_rate_score,
-                ABS(density-%(preferred_population_density)s) * %(importance_population_density)s AS city_population_density_score,
-                ABS(population-%(preferred_population)s) * %(importance_population)s AS city_population_score
+                SQRT(POWER(lat - %(preferred_latitude)s, 2) + POWER(lng - %(preferred_longitude)s, 2)) * %(importance_location)s AS city_location_score,
+                ABS(crime_rate - %(preferred_crime_rate)s) * %(importance_crime_rate)s AS city_crime_rate_score,
+                ABS(density - %(preferred_population_density)s) * %(importance_population_density)s AS city_population_density_score,
+                ABS(population - %(preferred_population)s) * %(importance_population)s AS city_population_score
             FROM city c2
         ),
-        industry_city_score AS(
+        industry_city_score AS (
             SELECT city_id, industry_name, a_median, jobs_1000,
-            ABS(a_median-%(preferred_industry_salary)s) * %(importance_industry_salary)s AS city_industry_salary_score,
-            ABS(a_median-%(preferred_industry_jobs_1000)s) * %(importance_industry_jobs_1000)s AS city_industry_jobs_1000_score
+                ABS(a_median - %(preferred_industry_salary)s) * %(importance_industry_salary)s AS city_industry_salary_score,
+                ABS(a_median - %(preferred_industry_jobs_1000)s) * %(importance_industry_jobs_1000)s AS city_industry_jobs_1000_score
             FROM industry_city_data
             WHERE industry_name = %(industry_name)s
         ),
-        state_score AS(
+        state_score AS (
             SELECT s2.state_id, COUNT(*) AS natural_disaster_count,
-            ABS(COUNT(*)-%(preferred_natural_disaster_count)s) * %(importance_natural_disaster_count)s AS state_natural_disaster_score
+                ABS(COUNT(*) - %(preferred_natural_disaster_count)s) * %(importance_natural_disaster_count)s AS state_natural_disaster_score
             FROM state s2
-                    JOIN natural_disaster
-                        ON s2.state_id = natural_disaster.state_id
-            WHERE date>'2000-01-01'
+            JOIN natural_disaster ON s2.state_id = natural_disaster.state_id
+            WHERE date > '2000-01-01'
             GROUP BY s2.state_id
         ),
-        county_score AS(
-            SELECT county, state_id, AVG(total_cost) as total_cost_of_living, AVG(median_family_income) as median_family_income,
-            ABS(AVG(total_cost)-%(preferred_cost_of_living)s) * %(importance_cost_of_living)s AS county_cost_of_living_score,
-            ABS(AVG(median_family_income)-%(preferred_median_family_income)s) * %(importance_median_family_income)s AS county_family_median_income_score
+        county_score AS (
+            SELECT county, state_id, AVG(total_cost) AS total_cost_of_living, AVG(median_family_income) AS median_family_income,
+                ABS(AVG(total_cost) - %(preferred_cost_of_living)s) * %(importance_cost_of_living)s AS county_cost_of_living_score,
+                ABS(AVG(median_family_income) - %(preferred_median_family_income)s) * %(importance_median_family_income)s AS county_family_median_income_score
             FROM cost_of_living_by_county
             GROUP BY county, state_id
         )
-
-        SELECT neighborhood_name, median_sale_price_adjusted, city_name,
-            city_name, s.state_id, co.county, lat, lng, crime_rate, density, population,
-            industry_name, a_median, jobs_1000, total_cost_of_living, median_family_income,
-            (neighborhood_price_score+city_location_score+city_crime_rate_score+city_industry_salary_score+city_industry_jobs_1000_score+state_natural_disaster_score) AS total_score
-        FROM neighborhood_score n
-        JOIN city_score c
-            ON n.city_id = c.id
-        JOIN industry_city_score i
-            ON i.city_id = c.id
-        JOIN state_score s
-            ON s.state_id=c.state_id
-        JOIN county_score co
-            ON co.county = c.county
-        ORDER BY total_score
-        LIMIT %(num)s
+        SELECT *
+        FROM (
+            SELECT DISTINCT ON (neighborhood_name, city_name, state_id)
+                neighborhood_name, 
+                city_name, 
+                s.state_id, 
+                median_sale_price_adjusted, 
+                co.county, 
+                lat, 
+                lng, 
+                crime_rate, 
+                density, 
+                population,
+                industry_name, 
+                a_median, 
+                jobs_1000, 
+                total_cost_of_living, 
+                median_family_income,
+                (neighborhood_price_score + city_location_score + city_crime_rate_score + city_industry_salary_score + city_industry_jobs_1000_score + state_natural_disaster_score) AS total_score
+            FROM neighborhood_score n
+            JOIN city_score c ON n.city_id = c.id
+            JOIN industry_city_score i ON i.city_id = c.id
+            JOIN state_score s ON s.state_id = c.state_id
+            JOIN county_score co ON co.county = c.county
+            WHERE (neighborhood_price_score + city_location_score + city_crime_rate_score + city_industry_salary_score + city_industry_jobs_1000_score + state_natural_disaster_score) IS NOT NULL
+            ORDER BY neighborhood_name, city_name, state_id, total_score DESC
+        ) subquery
+        ORDER BY total_score DESC
+        LIMIT %(num)s;
     """,
     "high_cost_cities_by_state": """
         WITH state_avg_cost AS (
@@ -157,6 +169,7 @@ SQL_QUERIES = {
             SELECT n2.name AS neighborhood_name,
                 CAST(SUM(CAST(hd.median_sale_price_adjusted AS DECIMAL(38, 2)) * hd.num_homes_sold) /
                 NULLIF(SUM(hd.num_homes_sold), 0) AS INT) AS weighted_avg_price,
+                n2.city_id, n2.state_id,
                 n2.id as id
             FROM neighborhood n2
             JOIN home_datapoint hd ON n2.id = hd.neighborhood_id
@@ -177,6 +190,11 @@ SQL_QUERIES = {
                 AND density BETWEEN COALESCE(%(min_pop_density)s, 0) AND COALESCE(%(max_pop_density)s, 100000)
                 AND population BETWEEN COALESCE(%(min_pop)s, 0) AND COALESCE(%(max_pop)s, 100000000)
                 AND ((%(city)s IS NULL OR %(city)s = '' OR name = %(city)s))
+        ),
+        industry_city_filtered AS (
+            SELECT city_id, industry_name, a_median, jobs_1000
+            FROM industry_city_data
+            WHERE industry_name = %(industry_name)s
         ),
         state_filtered AS (
             SELECT s.state_id, COUNT(*)
@@ -199,19 +217,19 @@ SQL_QUERIES = {
             FROM city_to_zip_code
             WHERE (%(zip_code)s IS NULL OR %(zip_code)s = 0 OR zip_code = %(zip_code)s))
 
-        SELECT DISTINCT ON (nf.neighborhood_name, cf.name, cf.state_id)
+        SELECT DISTINCT ON (nf.neighborhood_name, cf.name, nf.state_id)
         nf.id, nf.neighborhood_name, nf.weighted_avg_price, zf.zip_code, cf.id, cf.state_id, cf.county
-        FROM neighborhood n
-        JOIN neighborhood_filtered nf
-            ON n.id = nf.id
+        FROM neighborhood_filtered nf
         JOIN city_filtered cf
-            ON n.city_id = cf.id
+            ON nf.city_id = cf.id AND nf.state_id = cf.state_id
         JOIN state_filtered sf
-            ON n.state_id = sf.state_id
+            ON nf.state_id = sf.state_id
         JOIN county_filtered col_f
             ON cf.county = col_f.county AND cf.state_id = col_f.state_id
         JOIN zip_code_filtered zf
             ON zf.state_id = cf.state_id AND zf.city_name = cf.name
+        JOIN industry_city_filtered icf
+            ON icf.city_id = cf.id
 
         LIMIT COALESCE(%(num)s, 100)
 

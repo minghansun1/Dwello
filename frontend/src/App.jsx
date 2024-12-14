@@ -4,6 +4,8 @@ import { useState } from "react"
 import './styles/tailwind.css'
 import Home from "./pages/Home"
 import Search from "./pages/Search"
+import List from "./pages/List"
+import Detailed from "./pages/Detailed"
 import About from "./pages/About"
 import NotFound from "./pages/NotFound"
 import Login from "./pages/Login"
@@ -24,6 +26,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/list" element={<List />} />
+        <Route path="/detailed" element={<Detailed />} />
         <Route path="/about" element={<About />} />
         <Route path="/notfound" element={<NotFound />} />
         <Route path="/login" element={<Login />} />

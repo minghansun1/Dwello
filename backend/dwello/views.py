@@ -358,6 +358,7 @@ def preference_based_ranking(request):
     }
     print(params)
     results = execute_query("preference_based_ranking", params)
+    print(results)
     return Response(results)
 
 
@@ -389,6 +390,7 @@ def filter_neighborhoods(request):
         "city": request.data.get("City", None),
         "state": request.data.get("State", None),
         "county": request.data.get("County", None),
+        "industry_name": request.data.get("Industry", None),
     }
     print(params)
     results = execute_query("filter_neighborhoods", params)
