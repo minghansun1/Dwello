@@ -350,32 +350,6 @@ def high_cost_cities_by_state(request):
     results = execute_query("high_cost_cities_by_state")
     return Response(results)
 
-
-@api_view(["GET"])
-def get_user_preferences(request, user_id):
-    try:
-        user_profile = UserProfile.objects.select_related("user", "preferred_city").get(
-            user_id=user_id
-        )
-
-        return Response(
-            {
-                "username": user_profile.user.username,
-                "income": user_profile.income,
-                "preferred_city": (
-                    {
-                        "id": user_profile.preferred_city.id,
-                        "name": user_profile.preferred_city.name,
-                    }
-                    if user_profile.preferred_city
-                    else None
-                ),
-            }
-        )
-    except UserProfile.DoesNotExist:
-        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-
-
 @api_view(["POST"])
 def filter_neighborhoods(request):
     params = {
