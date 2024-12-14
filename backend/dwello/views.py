@@ -376,21 +376,27 @@ def get_user_preferences(request, user_id):
 @api_view(["POST"])
 def filter_neighborhoods(request):
     params = {
-        "min_price": request.GET.get("min_price"),
-        "max_price": request.GET.get("max_price"),
-        "max_crime": request.GET.get("max_crime"),
-        "max_latitude": request.GET.get("max_latitude"),
-        "min_latitude": request.GET.get("min_latitude"),
-        "max_longitude": request.GET.get("max_longitude"),
-        "min_longitude": request.GET.get("min_longitude"),
-        "max_cost_of_living": request.GET.get("max_cost_of_living"),
-        "min_cost_of_living": request.GET.get("min_cost_of_living"),
-        "zip_code": request.GET.get("zip_code"),
-        "max_natural_disaster_count": request.GET.get("max_natural_disaster_count"),
-        "max_pop_density": request.GET.get("max_pop_density"),
-        "max_pop": request.GET.get("max_pop"),
-        "num": request.GET.get("num", 10),
+        "min_price": request.data.get("Min Median Home Price"),
+        "max_price": request.data.get("Max Median Home Price"),
+        "max_crime": request.data.get("Max Crime"),
+        "max_latitude": request.data.get("Max Latitude"),
+        "min_latitude": request.data.get("Min Latitude"),
+        "max_longitude": request.data.get("Max Longitude"),
+        "min_longitude": request.data.get("Min Longitude"),
+        "max_cost_of_living": request.data.get("Max Cost of Living"),
+        "min_cost_of_living": request.data.get("Min Cost of Living"),
+        "max_natural_disaster_count": request.data.get("Max Natural Disaster Count"),
+        "min_pop_density": request.data.get("Min Population Density"),
+        "max_pop_density": request.data.get("Max Population Density"),
+        "min_pop": request.data.get("Min Population"),
+        "max_pop": request.data.get("Max Population"),
+        "num": request.data.get("num", 100),
+        "zip_code": int(request.data.get("Zip Code", 0)) if request.data.get("Zip Code") else 0,
+        "city": request.data.get("City", None),
+        "state": request.data.get("State", None),
+        "county": request.data.get("County", None),
     }
+    print(params)
     results = execute_query("filter_neighborhoods", params)
     return Response(results)
 
