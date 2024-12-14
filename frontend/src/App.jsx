@@ -1,6 +1,6 @@
 import react from "react"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import './styles/tailwind.css'
 import Home from "./pages/Home"
 import Search from "./pages/Search"
@@ -12,10 +12,38 @@ import Login from "./pages/Login"
 import Register from "./pages/Register"
 import Profile from "./pages/Profile"
 import ProtectedRoute from "./components/ProtectedRoute"
+import { ACCESS_TOKEN, REFRESH_TOKEN } from "./constants"
+
 
 function Logout() {
-  localStorage.clear()
-  return <Navigate to="/login" />
+  useEffect(() => {
+    const logout = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/logout/`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem(ACCESS_TOKEN)}`
+          },
+          body: JSON.stringify({
+            refresh_token: localStorage.getItem(REFRESH_TOKEN)
+          })
+        });
+        
+        if (response.ok) {
+          localStorage.clear();
+          window.location.href = '/login';
+        }
+      } catch (error) {
+        console.error('Logout failed:', error);
+      }
+    };
+
+    logout();
+  }, []);
+
+  return null;
 }
 
 function App() {
