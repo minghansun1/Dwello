@@ -37,9 +37,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """
-        Override to allow registration and login without authentication
+        Override to allow registration, login, and token refresh without authentication
         """
-        if self.action in ['register', 'login']:
+        if self.action in ['register', 'login', 'refresh_token']:
             return [AllowAny()]
         return super().get_permissions()
     
@@ -296,20 +296,22 @@ class UserViewSet(viewsets.ModelViewSet):
         })    
 
 
-
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def neighborhood_price_ranking(request):
     results = execute_query("neighborhood_price_ranking")
     return Response(results)
 
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def city_price_ranking(request):
     results = execute_query("city_price_ranking")
     return Response(results)
 
 
 @api_view(["POST"])
+@permission_classes([AllowAny])
 def preference_based_ranking(request):
     params = {
         "preferred_cost_of_living": request.data.get("preferred_cost_of_living"),
@@ -343,6 +345,7 @@ def preference_based_ranking(request):
 
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def high_cost_cities_by_state(request):
     results = execute_query("high_cost_cities_by_state")
     return Response(results)

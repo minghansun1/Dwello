@@ -12,6 +12,7 @@ SQL_QUERIES = {
         SELECT zcc.code AS zip_code, 
                zcc.city AS city_name,
                zcc.county AS county_name,
+               zcc.state_id AS state_id,
                COUNT(ulz.user_id) AS favorite_count
         FROM zip_county_code zcc
         JOIN user_likes_zipcode ulz ON zcc.code = ulz.zip_code
@@ -99,30 +100,53 @@ SQL_QUERIES = {
         LIMIT %(num)s
     """,
     "high_cost_cities_by_state": """
+        WITH state_avg_cost AS (
+        SELECT
+            state_id,
+            AVG(total_cost) AS avg_total_cost
+        FROM cost_of_living_by_county
+        GROUP BY state_id
+        ),
+        state_disaster_count AS (
+            SELECT
+                nd.state_id,
+                COUNT(*) AS disaster_count
+            FROM natural_disaster nd
+            WHERE nd.date > '2000-01-01'
+            GROUP BY nd.state_id
+        ),
+        county_income AS (
+            SELECT
+                state_id,
+                county,
+                AVG(median_family_income) AS avg_county_family_income
+            FROM cost_of_living_by_county
+            GROUP BY state_id, county
+        )
+
         SELECT
             c.name AS city_name,
             s.name AS state_name,
-            clb.total_cost AS cost_of_living
-        FROM
-            city c
-                JOIN
-            state s ON c.state_id = s.state_id
-                JOIN
-            cost_of_living_by_county clb ON c.county = clb.county AND c.state_id = clb.state_id
-        WHERE
-            clb.total_cost > (
-                SELECT AVG(clb2.total_cost)
-                FROM cost_of_living_by_county clb2
-                WHERE clb2.state_id = clb.state_id
-            )
+            clb.total_cost AS cost_of_living,
+            sac.avg_total_cost AS state_avg_cost_of_living,
+            ABS(clb.total_cost - sac.avg_total_cost) AS cost_difference_from_state_avg,
+            COALESCE(sdc.disaster_count, 0) AS disasters_since_2000,
+            ci.avg_county_family_income AS avg_county_median_family_income
+        FROM city c
+                JOIN state s ON c.state_id = s.state_id
+                JOIN cost_of_living_by_county clb ON c.county = clb.county AND c.state_id = clb.state_id
+                JOIN state_avg_cost sac ON s.state_id = sac.state_id
+                LEFT JOIN state_disaster_count sdc ON s.state_id = sdc.state_id
+                LEFT JOIN county_income ci ON clb.state_id = ci.state_id AND clb.county = ci.county
+        WHERE clb.total_cost > sac.avg_total_cost
         ORDER BY
             s.name,
-            clb.total_cost DESC
+            clb.total_cost DESC;
     """,
-    "get_user_preferences": """
-        SELECT income, location
-        FROM auth_user u
-        WHERE u.id = %(user_id)s
+    "get_user_income_and_city": """
+        SELECT income, city_id
+        FROM user_profile u
+        WHERE u.user_id = %(user_id)s
     """,
     "filter_neighborhoods": """
         WITH neighborhood_filtered AS (
@@ -177,34 +201,6 @@ SQL_QUERIES = {
             ON n.state_id = sf.state_id
         JOIN county_filtered col_f
             ON cf.county = col_f.county AND cf.state_id=col_f.state_id
-    """,
-    "get_user_favorites": """
-        SELECT
-            u.id AS user_id,
-            c.name AS favorite_city,
-            z.code AS favorite_zip_code,
-            s.name AS favorite_state,
-            n.name AS favorite_neighborhood
-        FROM
-            auth_user u
-                LEFT JOIN
-            user_likes_city ulc ON u.id = ulc.user_id
-                LEFT JOIN
-            city c ON ulc.city_id = c.id
-                LEFT JOIN
-            user_likes_zipcode ulz ON u.id = ulz.user_id
-                LEFT JOIN
-            zip_county_code z ON ulz.zip_code = z.code
-                LEFT JOIN
-            user_likes_state uls ON u.id = uls.user_id
-                LEFT JOIN
-            state s ON uls.state_id = s.state_id
-                LEFT JOIN
-            user_likes_neighborhood uln ON u.id = uln.user_id
-                LEFT JOIN
-            neighborhood n ON uln.neighborhood_id = n.id
-        WHERE
-            u.id = %(target_user_id)s
     """,
     "count_natural_disasters": """
         SELECT
@@ -267,7 +263,6 @@ SQL_QUERIES = {
         WHERE ul.user_id = %(user_id)s
         ORDER BY t.name
     """,
-
     "user_liked_zipcodes": """
         SELECT zcc.code AS zip_code,
                zcc.city AS city_name,
@@ -277,5 +272,5 @@ SQL_QUERIES = {
         JOIN user_likes_zipcode ulz ON zcc.code = ulz.zip_code
         WHERE ulz.user_id = %(user_id)s
         ORDER BY zcc.code
-    """
+    """,
 }
