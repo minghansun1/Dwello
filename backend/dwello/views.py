@@ -505,3 +505,65 @@ def top_liked_locations(request):
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def basic_city_snapshot(request):
+    """Get basic information about a city"""
+    city_name = request.GET.get('city')
+    if not city_name:
+        return Response(
+            {"error": "City name is required"}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    results = execute_query("basic_city_snapshot", {"city_name": city_name})
+    return Response(results)
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def basic_county_snapshot(request):
+    """Get basic information about a county"""
+    county_name = request.GET.get('county')
+    if not county_name:
+        return Response(
+            {"error": "County name is required"}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    results = execute_query("basic_county_snapshot", {"county_name": county_name})
+    return Response(results)
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def basic_state_snapshot(request):
+    """Get basic information about a state"""
+    state_name = request.GET.get('state')
+    if not state_name:
+        return Response(
+            {"error": "State name is required"}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    results = execute_query("basic_state_snapshot", {"state_name": state_name})
+    return Response(results)
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def basic_zipcode_snapshot(request):
+    """Get basic information about a zipcode"""
+    try:
+        zip_code = int(request.GET.get('zipcode', 0))
+        if not zip_code:
+            return Response(
+                {"error": "Zipcode is required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    except ValueError:
+        return Response(
+            {"error": "Invalid zipcode format"}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    results = execute_query("basic_zipcode_snapshot", {"zip_code": zip_code})
+    return Response(results)

@@ -305,4 +305,47 @@ SQL_QUERIES = {
         WHERE ulz.user_id = %(user_id)s
         ORDER BY zcc.code
     """,
+    "basic_city_snapshot": """
+        SELECT name, state_id, ranking,lat, lng, crime_rate, density, population
+        FROM city
+        WHERE name = %(city_name)s
+        LIMIT 1
+    """,
+    "basic_county_snapshot": """
+        SELECT 
+            county, 
+            housing_cost, 
+            food_cost,
+            healthcare_cost
+        FROM 
+            cost_of_living_by_county 
+        WHERE 
+            county = %(county_name)s
+        LIMIT 1
+    """,
+    "basic_state_snapshot": """
+        SELECT 
+            name, 
+            (SELECT AVG(crime_rate) FROM city WHERE city.state_id = state.state_id) AS average_crime_rate,
+            (SELECT AVG(median_family_income) FROM cost_of_living_by_county WHERE cost_of_living_by_county.state_id = state.state_id) AS average_median_family_income
+        FROM 
+            state 
+        WHERE 
+            name = %(state_name)s;
+    """,
+    "basic_zipcode_snapshot": """
+        SELECT 
+            zc.code,
+            zc.city AS city_name, 
+            zc.state_id AS state_id,  
+            AVG(col.housing_cost) AS avg_housing_cost 
+        FROM 
+            cost_of_living_by_county col
+        JOIN 
+            zip_county_code zc ON col.county = zc.county
+        WHERE 
+            zc.code = %(zip_code)s
+        GROUP BY 
+            zc.code;
+    """
 }
