@@ -158,7 +158,8 @@ SQL_QUERIES = {
         WHERE clb.total_cost > sac.avg_total_cost
         ORDER BY
             s.name,
-            clb.total_cost DESC;
+            clb.total_cost DESC
+        LIMIT 25000
     """,
     "get_user_income_and_city": """
         SELECT up.income, 
