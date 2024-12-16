@@ -277,7 +277,7 @@ function Map() {
     if (mapRef.current && window.google) {
       initMap();
     }
-  }, [mapRef, mapType]);
+  }, [isLoaded, mapRef, mapType]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
