@@ -35,7 +35,7 @@ function CustomSearch(){
             Custom Search
         </h2>
         <p className="text-base text-gray-800 mb-8">
-            Enter your desired values for the following parameters. Empty fields will be ignored.
+            Enter your desired values for the following parameters. Empty fields will be ignored. Drag the sliders to set the importance of each parameter.
         </p>
 
         {/* Custom Search Rows */}
